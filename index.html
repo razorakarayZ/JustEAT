@@ -1,0 +1,709 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Pełna Lodówka</title>
+<meta name="description" content="Jadłospis i lista zakupów do Lidla, ułożone pod Twój budżet.">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Lodówka">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#f2f4f1" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0b0f0c" media="(prefers-color-scheme: dark)">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<style>
+html { background: #f2f4f1; }
+@media (prefers-color-scheme: dark) { html { background: #0b0f0c; } }
+body { margin: 0; }
+img { max-width: 100%; }
+[hidden] { display: none !important; }
+</style>
+</head>
+<body><style>
+/* Layout: iOS-style single column. Large title on top, inset grouped cards, fixed bottom tab bar with four tabs: Planuj, Jadłospis, Lista, Ceny. Palette "Świeży targ": market green actions, yellow shelf price tags, coral for warnings. */
+:root {
+  --bg: #f2f4f1;
+  --card: #ffffff;
+  --ink: #14261b;
+  --muted: #6e7c73;
+  --sep: rgba(60, 67, 62, 0.16);
+  --fill: #e4e8e3;
+  --sw-off: #dfe3de;
+  --accent: #1e7a46;
+  --on-accent: #ffffff;
+  --accent-soft: #dff0e5;
+  --tag: #ffd60a;
+  --tag-ink: #14261b;
+  --coral: #d9472b;
+  --coral-soft: #ffe6e0;
+  --bar: rgba(248, 250, 247, 0.88);
+  --f-ui: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Segoe UI", system-ui, sans-serif;
+  --f-num: -apple-system, BlinkMacSystemFont, "SF Pro Rounded", "SF Pro Display", "Segoe UI", system-ui, sans-serif;
+  --r: 12px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --bg: #0b0f0c;
+    --card: #1a1f1b;
+    --ink: #eef3ef;
+    --muted: #94a098;
+    --sep: rgba(255, 255, 255, 0.1);
+    --fill: #2a302c;
+    --sw-off: #39403b;
+    --accent: #3dbe74;
+    --on-accent: #06210f;
+    --accent-soft: #173222;
+    --coral: #ff7a5e;
+    --coral-soft: #3a1e18;
+    --bar: rgba(22, 27, 23, 0.86);
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #0b0f0c;
+  --card: #1a1f1b;
+  --ink: #eef3ef;
+  --muted: #94a098;
+  --sep: rgba(255, 255, 255, 0.1);
+  --fill: #2a302c;
+  --sw-off: #39403b;
+  --accent: #3dbe74;
+  --on-accent: #06210f;
+  --accent-soft: #173222;
+  --coral: #ff7a5e;
+  --coral-soft: #3a1e18;
+  --bar: rgba(22, 27, 23, 0.86);
+}
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font: 17px/1.35 var(--f-ui);
+  -webkit-font-smoothing: antialiased;
+  padding-block: 8px calc(96px + env(safe-area-inset-bottom, 0px));
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+button, input { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.wrap { max-width: 600px; margin: 0 auto; }
+
+.top { padding: 8px 4px 14px; }
+.top small { display: block; font-size: 13px; font-weight: 600; color: var(--accent); letter-spacing: 0.02em; }
+.top h1 { margin: 2px 0 0; font-size: 34px; font-weight: 700; letter-spacing: -0.025em; line-height: 1.1; }
+
+.view { display: grid; gap: 22px; }
+.sec { display: grid; gap: 6px; }
+.sec > .hd { font-size: 13px; text-transform: uppercase; letter-spacing: 0.03em; color: var(--muted); padding: 0 16px; }
+.sec > .ft { font-size: 13px; color: var(--muted); padding: 0 16px; }
+.card { background: var(--card); border-radius: var(--r); overflow: hidden; }
+.row { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 46px; padding: 8px 16px; position: relative; }
+.row + .row::before { content: ""; position: absolute; top: 0; left: 16px; right: 0; border-top: 0.5px solid var(--sep); }
+.row .v { color: var(--muted); }
+
+.amount { display: flex; align-items: baseline; gap: 4px; }
+.amount input { width: 90px; text-align: right; border: 0; background: transparent; font: 600 22px var(--f-num); color: var(--accent); font-variant-numeric: tabular-nums; padding: 0; }
+.amount input:focus { outline: none; }
+.amount span { color: var(--accent); font-weight: 600; }
+input[type="range"] { width: 100%; accent-color: var(--accent); margin: 0; }
+
+.stepper { display: flex; align-items: center; background: var(--fill); border-radius: 9px; }
+.stepper button { width: 44px; height: 32px; border: 0; background: transparent; font-size: 22px; line-height: 1; cursor: pointer; color: var(--ink); }
+.stepper button + input, .stepper input + button { border-left: 0.5px solid var(--sep); }
+.stepper input { width: 40px; text-align: center; border: 0; border-right: 0.5px solid var(--sep); background: transparent; font: 600 17px var(--f-num); font-variant-numeric: tabular-nums; -moz-appearance: textfield; padding: 0; }
+.stepper input::-webkit-inner-spin-button, .stepper input::-webkit-outer-spin-button { -webkit-appearance: none; }
+
+.sw { -webkit-appearance: none; appearance: none; width: 51px; height: 31px; border-radius: 999px; background: var(--sw-off); position: relative; cursor: pointer; flex: none; margin: 0; transition: background .2s; }
+.sw::before { content: ""; position: absolute; top: 2px; left: 2px; width: 27px; height: 27px; border-radius: 50%; background: #fff; box-shadow: 0 2px 6px rgba(0,0,0,.18), 0 0 1px rgba(0,0,0,.2); transition: transform .2s; }
+.sw:checked { background: var(--accent); }
+.sw:checked::before { transform: translateX(20px); }
+.row label { flex: 1; cursor: pointer; }
+.row label small { display: block; font-size: 13px; color: var(--muted); }
+
+.seg { display: flex; background: var(--fill); border-radius: 9px; padding: 2px; }
+.seg label { flex: 1; position: relative; }
+.seg input { position: absolute; opacity: 0; inset: 0; margin: 0; cursor: pointer; }
+.seg span { display: block; text-align: center; padding: 7px 4px; font-size: 13px; font-weight: 500; border-radius: 7px; }
+.seg input:checked + span { background: var(--card); font-weight: 600; box-shadow: 0 3px 8px rgba(0,0,0,.1), 0 0 1px rgba(0,0,0,.12); }
+.seg input:focus-visible + span { outline: 2px solid var(--accent); }
+
+.chips { display: flex; flex-wrap: wrap; gap: 8px; padding: 14px 16px; }
+.chip { position: relative; }
+.chip input { position: absolute; opacity: 0; inset: 0; margin: 0; cursor: pointer; }
+.chip span { display: inline-block; padding: 7px 13px; border-radius: 999px; background: var(--fill); font-size: 15px; user-select: none; }
+.chip input:checked + span { background: var(--accent); color: var(--on-accent); font-weight: 600; }
+.chip input:focus-visible + span { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.btn { display: block; width: 100%; border: 0; border-radius: 14px; padding: 15px; background: var(--accent); color: var(--on-accent); font-size: 17px; font-weight: 600; cursor: pointer; }
+.btn:active { opacity: .85; }
+.btn.plain { background: var(--card); color: var(--accent); }
+.btns { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+.sum { padding: 16px; display: grid; gap: 12px; }
+.sum .big { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.sum .big b { font: 700 38px/1 var(--f-num); letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+.sum .big span { color: var(--muted); font-size: 15px; }
+.meter { height: 8px; border-radius: 999px; background: var(--fill); overflow: hidden; }
+.meter i { display: block; height: 100%; background: var(--accent); border-radius: 999px; transition: width .4s ease; }
+.meter.over i { background: var(--coral); }
+.stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.stats div { display: grid; }
+.stats b { font: 600 17px var(--f-num); font-variant-numeric: tabular-nums; }
+.stats small { font-size: 12px; color: var(--muted); }
+.note { padding: 10px 12px; border-radius: 10px; font-size: 14px; }
+.note.ok { background: var(--accent-soft); color: var(--accent); }
+.note.bad { background: var(--coral-soft); color: var(--coral); }
+
+.tag { display: inline-grid; justify-items: end; background: var(--tag); color: var(--tag-ink); border-radius: 5px; padding: 3px 7px 2px; line-height: 1.05; flex: none; }
+.tag b { font: 700 16px var(--f-num); font-variant-numeric: tabular-nums; }
+.tag small { font-size: 10px; font-weight: 500; }
+
+.dayhd { display: flex; justify-content: space-between; align-items: baseline; padding: 0 16px; }
+.dayhd b { font-size: 20px; font-weight: 700; letter-spacing: -0.01em; }
+.dayhd span { font-size: 14px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.meal { align-items: flex-start; padding-block: 11px; }
+.meal .txt { flex: 1; min-width: 0; display: grid; gap: 2px; }
+.meal .kind { font-size: 12px; font-weight: 600; color: var(--accent); text-transform: uppercase; letter-spacing: 0.04em; }
+.meal summary { cursor: pointer; font-weight: 600; list-style: none; }
+.meal summary::-webkit-details-marker { display: none; }
+.meal .meta { font-size: 13px; color: var(--muted); }
+.meal .meta button { border: 0; background: none; padding: 0; color: var(--accent); font-size: 13px; font-weight: 600; cursor: pointer; }
+.ing { margin: 6px 0 2px; padding-left: 18px; font-size: 14px; color: var(--muted); }
+.pref { color: var(--accent); }
+
+.check { -webkit-appearance: none; appearance: none; width: 24px; height: 24px; border-radius: 50%; border: 1.5px solid var(--muted); flex: none; margin: 0; cursor: pointer; position: relative; }
+.check:checked { background: var(--accent); border-color: var(--accent); }
+.check:checked::after { content: ""; position: absolute; left: 7px; top: 3px; width: 6px; height: 11px; border: solid var(--on-accent); border-width: 0 2px 2px 0; transform: rotate(45deg); }
+.item { justify-content: flex-start; align-items: flex-start; padding-block: 11px; }
+.item label { display: grid; gap: 1px; min-width: 0; }
+.item label small { font-size: 13px; color: var(--muted); }
+.item .p { margin-left: auto; font-variant-numeric: tabular-nums; font-weight: 500; white-space: nowrap; }
+.item.done label > span, .item.done .p { color: var(--muted); text-decoration: line-through; }
+.total b { font: 700 20px var(--f-num); font-variant-numeric: tabular-nums; }
+
+.prow input { width: 96px; text-align: right; border: 0; border-radius: 8px; padding: 6px 8px; background: var(--fill); font-variant-numeric: tabular-nums; }
+.prow input.changed { color: var(--accent); font-weight: 600; box-shadow: inset 0 0 0 1.5px var(--accent); }
+.prow label small { display: inline; }
+
+.tabbar {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 20;
+  display: flex; justify-content: center;
+  background: var(--bar); -webkit-backdrop-filter: saturate(180%) blur(20px); backdrop-filter: saturate(180%) blur(20px);
+  border-top: 0.5px solid var(--sep);
+  padding: 6px max(16px, env(safe-area-inset-right, 0px)) calc(6px + env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px));
+}
+.tabbar div { display: flex; width: 100%; max-width: 600px; justify-content: space-around; }
+.tabbar button { border: 0; background: none; display: grid; justify-items: center; gap: 2px; padding: 4px 8px; font-size: 10.5px; font-weight: 500; color: #8e8e93; cursor: pointer; min-width: 64px; }
+.tabbar svg { width: 26px; height: 26px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.tabbar button[aria-selected="true"] { color: var(--accent); }
+.foot { font-size: 13px; color: var(--muted); padding: 0 16px; margin: 0; }
+@media (prefers-reduced-motion: reduce) { .meter i, .sw, .sw::before { transition: none; } }
+</style>
+
+<div class="wrap">
+  <header class="top"><small>Pełna Lodówka</small><h1 id="title">Planuj</h1></header>
+
+  <form class="view" id="view-form" autocomplete="off">
+    <div class="sec">
+      <div class="hd">Budżet</div>
+      <div class="card">
+        <div class="row"><label for="budget">Na zakupy</label><div class="amount"><input id="budget" type="number" inputmode="numeric" min="30" max="3000" step="10" value="250"><span>zł</span></div></div>
+        <div class="row"><input id="budgetRange" type="range" min="50" max="1200" step="10" value="250" aria-label="Budżet suwak"></div>
+      </div>
+    </div>
+
+    <div class="sec">
+      <div class="hd">Ile i na jak długo</div>
+      <div class="card">
+        <div class="row"><label for="persons">Osoby</label><div class="stepper"><button type="button" data-step="persons" data-d="-1" aria-label="Mniej osób">−</button><input id="persons" type="number" min="1" max="10" value="2"><button type="button" data-step="persons" data-d="1" aria-label="Więcej osób">+</button></div></div>
+        <div class="row"><label for="days">Dni</label><div class="stepper"><button type="button" data-step="days" data-d="-1" aria-label="Mniej dni">−</button><input id="days" type="number" min="1" max="14" value="5"><button type="button" data-step="days" data-d="1" aria-label="Więcej dni">+</button></div></div>
+      </div>
+    </div>
+
+    <div class="sec">
+      <div class="hd">Posiłki</div>
+      <div class="card">
+        <div class="row"><label for="meal-S">Śniadanie</label><input class="sw" type="checkbox" id="meal-S" checked></div>
+        <div class="row"><label for="meal-O">Obiad</label><input class="sw" type="checkbox" id="meal-O" checked></div>
+        <div class="row"><label for="meal-K">Kolacja</label><input class="sw" type="checkbox" id="meal-K" checked></div>
+      </div>
+    </div>
+
+    <div class="sec">
+      <div class="hd">Dieta</div>
+      <div class="seg" role="radiogroup" aria-label="Dieta">
+        <label><input type="radio" name="diet" id="diet-all" value="all" checked><span>Wszystko</span></label>
+        <label><input type="radio" name="diet" id="diet-pesc" value="pesc"><span>Bez mięsa</span></label>
+        <label><input type="radio" name="diet" id="diet-vege" value="vege"><span>Wege</span></label>
+      </div>
+      <div class="ft">„Bez mięsa” zostawia ryby w planie.</div>
+    </div>
+
+    <div class="sec">
+      <div class="hd">Na co masz ochotę?</div>
+      <div class="card"><div class="chips" id="prefs"></div></div>
+      <div class="ft">Zaznacz dowolnie dużo albo nic. To podpowiedź, nie twardy filtr.</div>
+    </div>
+
+    <div class="sec">
+      <div class="hd">Opcje</div>
+      <div class="card">
+        <div class="row"><label for="pantry">Mam olej i oliwę<small>Sól i przyprawy zakładamy zawsze</small></label><input class="sw" type="checkbox" id="pantry" checked></div>
+        <div class="row"><label for="batch">Obiad na 2 dni<small>Gotujesz raz, drugiego dnia odgrzewasz</small></label><input class="sw" type="checkbox" id="batch"></div>
+      </div>
+    </div>
+
+    <button class="btn" type="submit">Ułóż plan i listę zakupów</button>
+
+    <div class="sec">
+      <div class="hd">Twój aktualny plan</div>
+      <div class="card sum" id="summary"></div>
+      <div class="btns"><button type="button" class="btn plain" data-go="plan">Jadłospis</button><button type="button" class="btn plain" data-go="list">Lista zakupów</button></div>
+    </div>
+  </form>
+
+  <section class="view" id="view-plan" hidden></section>
+  <section class="view" id="view-list" hidden></section>
+  <section class="view" id="view-prices" hidden></section>
+</div>
+
+<nav class="tabbar" aria-label="Zakładki"><div role="tablist">
+  <button type="button" role="tab" id="tab-form" aria-selected="true"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg>Planuj</button>
+  <button type="button" role="tab" id="tab-plan" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15" rx="3"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg>Jadłospis</button>
+  <button type="button" role="tab" id="tab-list" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 4h2.2l2.3 11h10.8l2-8H6.3"/><circle cx="9" cy="19.5" r="1.4"/><circle cx="17" cy="19.5" r="1.4"/></svg>Lista</button>
+  <button type="button" role="tab" id="tab-prices" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 12.5V4.5a1 1 0 0 1 1-1h8l8 8-9 9z"/><circle cx="8.5" cy="8.5" r="1.5"/></svg>Ceny</button>
+</div></nav>
+
+<script>
+// ---------- Dane: produkty [id, nazwa, opakowanie, jednostka, cena zł, dział, w spiżarni?]
+const PRODUCTS = [
+  ["ziemniaki","Ziemniaki",2000,"g",6.99,"veg"],
+  ["cebula","Cebula",1000,"g",3.49,"veg"],
+  ["czosnek","Czosnek",3,"gł.",2.99,"veg"],
+  ["marchew","Marchew",1000,"g",2.99,"veg"],
+  ["pomidory","Pomidory",500,"g",6.99,"veg"],
+  ["koktajl","Pomidorki koktajlowe",250,"g",4.99,"veg"],
+  ["ogorek","Ogórek zielony",1,"szt",2.49,"veg"],
+  ["papryka","Papryka czerwona",500,"g",7.99,"veg"],
+  ["brokul","Brokuł",1,"szt",4.99,"veg"],
+  ["cukinia","Cukinia",1,"szt",3.49,"veg"],
+  ["pieczarki","Pieczarki",500,"g",6.99,"veg"],
+  ["salata","Sałata lodowa",1,"szt",3.99,"veg"],
+  ["kapusta","Kapusta biała",1,"szt",4.99,"veg"],
+  ["awokado","Awokado",1,"szt",3.99,"veg"],
+  ["dynia","Dynia hokkaido",1,"szt",6.99,"veg"],
+  ["banan","Banany",1000,"g",5.99,"veg"],
+  ["jablka","Jabłka",2000,"g",6.99,"veg"],
+  ["cytryna","Cytryny",4,"szt",4.99,"veg"],
+  ["chleb","Chleb wiejski",500,"g",4.49,"bread"],
+  ["bulka","Bułka pszenna",1,"szt",0.45,"bread"],
+  ["tost","Chleb tostowy",500,"g",4.29,"bread"],
+  ["tortilla","Tortille pszenne",6,"szt",6.49,"bread"],
+  ["mleko","Mleko 3,2%",1000,"ml",3.69,"dairy"],
+  ["jaja","Jaja z wolnego wybiegu L",10,"szt",10.99,"dairy"],
+  ["maslo","Masło 82%",200,"g",6.99,"dairy"],
+  ["ser","Ser gouda w plastrach",150,"g",4.99,"dairy"],
+  ["twarog","Twaróg półtłusty",250,"g",3.79,"dairy"],
+  ["jogurt","Jogurt naturalny",400,"g",3.29,"dairy"],
+  ["grecki","Jogurt typu greckiego",400,"g",4.99,"dairy"],
+  ["smietana","Śmietana 18%",330,"g",3.99,"dairy"],
+  ["mozza","Mozzarella",125,"g",2.99,"dairy"],
+  ["feta","Ser sałatkowy typu feta",200,"g",4.49,"dairy"],
+  ["wiejski","Serek wiejski",200,"g",2.99,"dairy"],
+  ["hummus","Hummus klasyczny",200,"g",5.49,"dairy"],
+  ["tofu","Tofu naturalne",180,"g",5.49,"dairy"],
+  ["piers","Filet z piersi kurczaka",500,"g",13.49,"meat"],
+  ["mielone","Mięso mielone wieprzowo-wołowe",500,"g",12.99,"meat"],
+  ["udka","Udka z kurczaka",1000,"g",12.99,"meat"],
+  ["schab","Schab bez kości",500,"g",11.99,"meat"],
+  ["kielbasa","Kiełbasa wieprzowa",400,"g",9.99,"meat"],
+  ["szynka","Szynka w plastrach",150,"g",5.49,"meat"],
+  ["losos","Filet z łososia",250,"g",17.99,"meat"],
+  ["mintaj","Filet z mintaja, mrożony",400,"g",11.99,"frozen"],
+  ["warzywamix","Mieszanka warzyw na patelnię",450,"g",6.49,"frozen"],
+  ["pierogi","Pierogi ruskie",450,"g",7.99,"frozen"],
+  ["frytki","Frytki do piekarnika",750,"g",6.99,"frozen"],
+  ["spaghetti","Makaron spaghetti",500,"g",3.99,"dry"],
+  ["penne","Makaron penne",500,"g",3.99,"dry"],
+  ["noodle","Makaron chiński",250,"g",4.99,"dry"],
+  ["ryz","Ryż długoziarnisty",1000,"g",5.99,"dry"],
+  ["kasza","Kasza gryczana",400,"g",3.99,"dry"],
+  ["kuskus","Kuskus",500,"g",5.49,"dry"],
+  ["soczewica","Soczewica czerwona",400,"g",5.49,"dry"],
+  ["platki","Płatki owsiane",500,"g",2.99,"dry"],
+  ["maka","Mąka pszenna",1000,"g",3.29,"dry"],
+  ["bulkatarta","Bułka tarta",450,"g",2.99,"dry"],
+  ["bulion","Kostki rosołowe warzywne",6,"szt",2.99,"dry"],
+  ["krojone","Pomidory krojone",400,"g",2.79,"jar"],
+  ["passata","Passata pomidorowa",680,"g",4.49,"jar"],
+  ["fasola","Fasola czerwona",400,"g",2.99,"jar"],
+  ["ciecierzyca","Ciecierzyca",400,"g",3.29,"jar"],
+  ["kukurydza","Kukurydza konserwowa",340,"g",3.49,"jar"],
+  ["tunczyk","Tuńczyk w sosie własnym",170,"g",6.49,"jar"],
+  ["kokos","Mleczko kokosowe",400,"ml",5.99,"jar"],
+  ["sojowy","Sos sojowy",150,"ml",5.49,"jar"],
+  ["pesto","Pesto zielone",190,"g",6.99,"jar"],
+  ["majonez","Majonez",400,"g",6.49,"jar"],
+  ["dzem","Dżem truskawkowy",280,"g",4.99,"jar"],
+  ["orzech","Masło orzechowe",350,"g",8.99,"jar"],
+  ["olej","Olej rzepakowy",1000,"ml",8.99,"base",true],
+  ["oliwa","Oliwa z oliwek",500,"ml",19.99,"base",true],
+];
+const DEPTS = [["veg","Warzywa i owoce"],["bread","Pieczywo"],["dairy","Nabiał i lodówka"],["meat","Mięso i ryby"],["frozen","Mrożonki"],["dry","Makarony, kasze, sypkie"],["jar","Puszki i słoiki"],["base","Podstawy"]];
+const P = {};
+PRODUCTS.forEach(([id,name,qty,unit,price,dept,pantry]) => P[id] = {id,name,qty,unit,price,dept,pantry:!!pantry});
+
+// ---------- Przepisy: ilości na 1 porcję. d: m = mięso, r = ryba, v = wegetariańskie
+const R = (n,t,d,tags,min,i) => ({n,t,d,tags,min,i});
+const RECIPES = [
+  R("Owsianka z bananem i masłem orzechowym","S","v",["slodkie","szybkie","fit"],10,{platki:60,mleko:200,banan:120,orzech:15}),
+  R("Jajecznica na maśle z pomidorem","SK","v",["polska","szybkie"],10,{jaja:2.5,maslo:10,chleb:100,pomidory:100}),
+  R("Kanapki z szynką, serem i ogórkiem","SK","m",["polska","szybkie"],5,{chleb:110,maslo:10,szynka:40,ser:30,ogorek:0.25}),
+  R("Twarożek z ogórkiem na chlebie","SK","v",["polska","szybkie","fit"],10,{twarog:100,jogurt:40,ogorek:0.25,chleb:100}),
+  R("Jogurt grecki z jabłkiem i płatkami","S","v",["slodkie","szybkie","fit"],5,{grecki:170,jablka:150,platki:30,dzem:15}),
+  R("Naleśniki z dżemem","S","v",["slodkie","polska"],25,{maka:60,mleko:150,jaja:0.5,dzem:40,olej:10}),
+  R("Tost z awokado i jajkiem","S","v",["srodziemno","fit","szybkie"],10,{tost:80,awokado:0.5,jaja:1,koktajl:50}),
+  R("Szakszuka z pieczywem","SK","v",["srodziemno"],25,{jaja:2,krojone:200,papryka:70,cebula:50,chleb:80,oliwa:10}),
+  R("Serek wiejski z pomidorem i chlebem","SK","v",["polska","szybkie","fit"],5,{wiejski:200,pomidory:100,chleb:80}),
+  R("Kanapki z hummusem i papryką","SK","v",["srodziemno","szybkie","fit"],5,{chleb:100,hummus:50,papryka:60,ogorek:0.2}),
+  R("Placki owsiane z bananem","S","v",["slodkie","fit"],20,{platki:50,banan:100,jaja:1,jogurt:60,olej:5}),
+  R("Tosty z serem i szynką","KS","m",["szybkie","fastfood"],10,{tost:100,ser:40,szynka:30,maslo:5}),
+
+  R("Spaghetti bolognese","O","m",["wloska"],35,{spaghetti:100,mielone:125,passata:170,cebula:40,czosnek:0.1,marchew:40,olej:10}),
+  R("Schabowy z ziemniakami i surówką z kapusty","O","m",["polska"],45,{schab:150,jaja:0.3,maka:15,bulkatarta:25,ziemniaki:250,kapusta:0.08,marchew:30,olej:20}),
+  R("Kurczak curry z mleczkiem kokosowym i ryżem","O","m",["azjatycka"],30,{piers:130,kokos:100,ryz:80,cebula:40,papryka:60,czosnek:0.1,olej:10}),
+  R("Pierogi ruskie z cebulką i śmietaną","O","v",["polska","szybkie"],15,{pierogi:300,cebula:50,maslo:10,smietana:40}),
+  R("Zupa pomidorowa z makaronem","O","v",["polska"],30,{bulion:0.5,passata:200,marchew:60,penne:50,smietana:30,chleb:40}),
+  R("Leczo z kiełbasą i ryżem","O","m",["polska"],35,{kielbasa:100,cukinia:0.3,papryka:120,cebula:50,krojone:130,ryz:60,olej:10}),
+  R("Chili con carne z ryżem","O","m",["meksykanska"],40,{mielone:120,fasola:130,kukurydza:70,krojone:130,cebula:40,czosnek:0.1,ryz:70,olej:10}),
+  R("Tortille z kurczakiem i warzywami","OK","m",["meksykanska","szybkie"],20,{tortilla:2,piers:110,papryka:60,salata:0.15,jogurt:40,kukurydza:50,olej:5}),
+  R("Łosoś z ziemniakami i brokułem","O","r",["fit"],30,{losos:125,ziemniaki:250,brokul:0.4,maslo:10,cytryna:0.25}),
+  R("Mintaj w panierce z surówką z marchwi","O","r",["polska"],35,{mintaj:150,maka:15,jaja:0.3,bulkatarta:20,ziemniaki:250,marchew:100,jablka:50,olej:20}),
+  R("Penne z pesto, pomidorkami i mozzarellą","O","v",["wloska","szybkie"],15,{penne:100,pesto:40,koktajl:80,mozza:60}),
+  R("Dal z czerwonej soczewicy z ryżem","O","v",["azjatycka","fit"],30,{soczewica:80,kokos:80,krojone:100,cebula:40,czosnek:0.1,ryz:60,olej:10}),
+  R("Makaron stir-fry z kurczakiem","O","m",["azjatycka","szybkie"],20,{noodle:80,piers:110,warzywamix:150,sojowy:20,czosnek:0.1,olej:10}),
+  R("Kasza gryczana z sosem pieczarkowym","O","v",["polska"],30,{kasza:80,pieczarki:150,cebula:50,smietana:50,olej:10}),
+  R("Pieczone udka z ziemniakami i mizerią","O","m",["polska"],60,{udka:300,ziemniaki:250,ogorek:0.4,smietana:40,olej:10}),
+  R("Kuskus z ciecierzycą, cukinią i fetą","OK","v",["srodziemno","fit","szybkie"],20,{kuskus:80,ciecierzyca:120,cukinia:0.3,papryka:60,feta:40,oliwa:10}),
+  R("Spaghetti z tuńczykiem i pomidorami","O","r",["wloska","szybkie"],20,{spaghetti:100,tunczyk:85,krojone:130,czosnek:0.1,oliwa:10}),
+  R("Placki ziemniaczane ze śmietaną","O","v",["polska"],40,{ziemniaki:300,cebula:30,jaja:0.5,maka:20,olej:25,smietana:50}),
+  R("Tofu z ryżem, brokułem i sosem sojowym","O","v",["azjatycka","fit"],25,{tofu:90,ryz:80,brokul:0.3,sojowy:20,czosnek:0.1,olej:10}),
+  R("Kurczak z ryżem i warzywami","O","m",["fit","szybkie"],25,{piers:140,ryz:70,warzywamix:150,oliwa:10}),
+  R("Domowe burgery z frytkami","O","m",["fastfood"],30,{bulka:1,mielone:125,ser:20,salata:0.1,pomidory:60,frytki:150,majonez:10}),
+  R("Pizza z szynką i pieczarkami","O","m",["wloska","fastfood"],45,{maka:100,passata:60,mozza:60,pieczarki:50,szynka:30,oliwa:10}),
+  R("Pizza margherita","O","v",["wloska","fastfood"],45,{maka:100,passata:60,mozza:90,oliwa:10}),
+  R("Krem z dyni z grzankami","O","v",["polska","fit","sezon"],40,{dynia:0.25,cebula:30,marchew:50,bulion:0.5,smietana:30,chleb:50,maslo:5}),
+
+  R("Sałatka grecka z pieczywem","K","v",["srodziemno","fit","szybkie"],10,{pomidory:120,ogorek:0.3,papryka:60,feta:50,cebula:20,oliwa:10,chleb:60}),
+  R("Sałatka z kurczakiem i sosem jogurtowym","K","m",["fit"],20,{salata:0.25,piers:100,koktajl:60,ogorek:0.2,jogurt:40,chleb:40,oliwa:5}),
+  R("Kanapki z jajkiem i majonezem","KS","v",["polska","szybkie"],15,{jaja:1.5,majonez:15,chleb:100,pomidory:60}),
+  R("Quesadilla z serem i fasolą","K","v",["meksykanska","szybkie"],15,{tortilla:1.5,ser:40,fasola:80,kukurydza:40}),
+  R("Sałatka z tuńczykiem i kukurydzą","K","r",["szybkie","fit"],10,{tunczyk:85,kukurydza:50,jaja:1,majonez:15,chleb:60}),
+  R("Tosty z mozzarellą i pomidorem","K","v",["wloska","szybkie"],10,{tost:100,mozza:50,pomidory:80,pesto:10}),
+];
+const PREFS = [["polska","Polskie domowe"],["wloska","Włoskie"],["azjatycka","Azjatyckie"],["meksykanska","Meksykańskie"],["srodziemno","Śródziemnomorskie"],["fastfood","Domowy fast food"],["wege","Więcej wege"],["fit","Lekko i fit"],["szybkie","Szybkie, do 20 min"],["slodkie","Słodkie śniadania"],["sezon","Sezonowe (dynia)"]];
+const MEAL_NAMES = {S:"Śniadanie",O:"Obiad",K:"Kolacja"};
+const TAG_NAMES = Object.fromEntries(PREFS);
+
+// ---------- Pamięć przeglądarki (tylko wygoda, strona działa bez niej)
+function load(k, d) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch (e) { return d; } }
+function save(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
+let priceOverrides = load("pl-prices", {});
+let checked = load("pl-checked", {});
+
+const $ = s => document.querySelector(s);
+const zl = v => v.toLocaleString("pl-PL", {minimumFractionDigits: 2, maximumFractionDigits: 2}) + " zł";
+const num = (v, dec = 1) => v.toLocaleString("pl-PL", {maximumFractionDigits: dec});
+const price = id => (id in priceOverrides) ? priceOverrides[id] : P[id].price;
+function amount(v, unit) {
+  if (unit === "g" && v >= 1000) return num(v / 1000, 2) + " kg";
+  if (unit === "ml" && v >= 1000) return num(v / 1000, 2) + " l";
+  if (unit === "g" || unit === "ml") return num(Math.round(v)) + " " + unit;
+  return num(v) + " " + unit;
+}
+function mulberry32(a) { return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+
+// ---------- Formularz
+$("#prefs").innerHTML = PREFS.map(([k, l]) => `<label class="chip"><input type="checkbox" id="pref-${k}" value="${k}"><span>${l}</span></label>`).join("");
+$("#budget").addEventListener("input", e => { $("#budgetRange").value = e.target.value; });
+$("#budgetRange").addEventListener("input", e => { $("#budget").value = e.target.value; });
+document.querySelectorAll("[data-step]").forEach(b => b.addEventListener("click", () => {
+  const inp = $("#" + b.dataset.step);
+  inp.value = Math.min(+inp.max, Math.max(+inp.min, (+inp.value || 0) + +b.dataset.d));
+}));
+
+function readForm() {
+  const clamp = (v, lo, hi, d) => Math.min(hi, Math.max(lo, Number.isFinite(v) ? v : d));
+  const meals = ["S","O","K"].filter(m => $("#meal-" + m).checked);
+  return {
+    budget: clamp(parseFloat($("#budget").value), 30, 3000, 250),
+    persons: clamp(parseInt($("#persons").value), 1, 10, 2),
+    days: clamp(parseInt($("#days").value), 1, 14, 5),
+    meals: meals.length ? meals : ["O"],
+    diet: document.querySelector("input[name=diet]:checked").value,
+    prefs: PREFS.map(p => p[0]).filter(k => $("#pref-" + k).checked),
+    pantry: $("#pantry").checked,
+    batch: $("#batch").checked,
+  };
+}
+
+// ---------- Logika planu
+let cfg, groups = [], seed = 1;
+
+function dietOk(r) { return cfg.diet === "all" || (cfg.diet === "pesc" ? r.d !== "m" : r.d === "v"); }
+function eligible(meal) { return RECIPES.map((r, i) => i).filter(i => RECIPES[i].t.includes(meal) && dietOk(RECIPES[i])); }
+function matches(r) { return cfg.prefs.filter(p => p === "wege" ? r.d === "v" : r.tags.includes(p)).length; }
+
+function basket(gs) {
+  const need = {};
+  gs.forEach(g => {
+    const portions = cfg.persons * g.days.length;
+    for (const [id, a] of Object.entries(RECIPES[g.r].i)) need[id] = (need[id] || 0) + a * portions;
+  });
+  const items = [];
+  let total = 0;
+  for (const [id, n] of Object.entries(need)) {
+    const p = P[id];
+    if (cfg.pantry && p.pantry) continue;
+    const packs = Math.max(1, Math.ceil(n / p.qty - 1e-6));
+    const cost = packs * price(id);
+    total += cost;
+    items.push({p, need: n, packs, cost, left: packs * p.qty - n});
+  }
+  return {items, total};
+}
+const totalOf = gs => basket(gs).total;
+const portionCost = r => Object.entries(RECIPES[r].i).reduce((s, [id, a]) => (cfg.pantry && P[id].pantry) ? s : s + a * price(id) / P[id].qty, 0);
+
+function makeGroups() {
+  const gs = [];
+  for (let d = 0; d < cfg.days; d++) for (const m of cfg.meals) {
+    if (m === "O" && cfg.batch && d % 2 === 1) { gs.find(g => g.meal === "O" && g.days[0] === d - 1).days.push(d); continue; }
+    gs.push({meal: m, days: [d], r: -1});
+  }
+  return gs;
+}
+
+function choose(gs, rng) {
+  const used = {};
+  gs.forEach(g => {
+    let best = -1, bestV = -Infinity;
+    for (const c of eligible(g.meal)) {
+      const r = RECIPES[c], mt = matches(r);
+      let v = 1 + 1.6 * mt + rng() * 1.2 - (used[c] || 0) * (g.meal === "S" ? 0.9 : 2.4);
+      if (cfg.prefs.length && !mt) v -= 0.6;
+      if (v > bestV) { bestV = v; best = c; }
+    }
+    g.r = best; used[best] = (used[best] || 0) + 1;
+  });
+}
+
+// Zamienia najdroższe dania na tańsze, dopóki plan nie zmieści się w budżecie.
+function fitBudget(gs) {
+  let cost = totalOf(gs);
+  for (let iter = 0; iter < 80 && cost > cfg.budget; iter++) {
+    let best = null, bestScore = 0;
+    gs.forEach((g, gi) => {
+      const cur = g.r;
+      for (const c of eligible(g.meal)) {
+        if (c === cur) continue;
+        g.r = c;
+        const nc = totalOf(gs);
+        const delta = cost - nc;
+        if (delta > 0.01) {
+          const uses = gs.filter(x => x.r === c).length - 1;
+          const loss = Math.max(0, matches(RECIPES[cur]) - matches(RECIPES[c]));
+          const s = delta / (1 + loss * 0.7 + uses * 0.6);
+          if (s > bestScore) { bestScore = s; best = [gi, c, nc]; }
+        }
+      }
+      g.r = cur;
+    });
+    if (!best) break;
+    gs[best[0]].r = best[1]; cost = best[2];
+  }
+  return cost;
+}
+
+function generate(newSeed) {
+  cfg = readForm();
+  if (newSeed) seed = Math.floor(Math.random() * 1e9);
+  groups = makeGroups();
+  choose(groups, mulberry32(seed));
+  fitBudget(groups);
+  checked = {}; save("pl-checked", checked);
+  render();
+}
+
+function swapGroup(gi) {
+  const g = groups[gi], cur = g.r, before = totalOf(groups);
+  const limit = Math.max(cfg.budget, before);
+  const opts = [];
+  for (const c of eligible(g.meal)) {
+    if (c === cur) continue;
+    g.r = c;
+    const nc = totalOf(groups), uses = groups.filter(x => x.r === c).length - 1;
+    opts.push({c, nc, v: matches(RECIPES[c]) * 1.6 - uses * 2 + Math.random() * 1.5});
+  }
+  g.r = cur;
+  const fit = opts.filter(o => o.nc <= limit + 0.01);
+  const pool = (fit.length ? fit : opts.sort((a, b) => a.nc - b.nc).slice(0, 3)).sort((a, b) => b.v - a.v);
+  if (pool.length) g.r = pool[0].c;
+  render();
+}
+
+// ---------- Widok
+const WD = ["niedziela","poniedziałek","wtorek","środa","czwartek","piątek","sobota"];
+function dayLabel(d) {
+  const t = new Date(); t.setDate(t.getDate() + d);
+  return `${WD[t.getDay()]}, ${t.getDate()}.${String(t.getMonth() + 1).padStart(2, "0")}`;
+}
+
+function summaryHTML(total, items) {
+  const portions = groups.reduce((s, g) => s + g.days.length, 0) * cfg.persons;
+  const over = total > cfg.budget, left = cfg.budget - total;
+  const note = over
+    ? `<div class="note bad">Najtańszy plan, jaki udało się ułożyć, kosztuje ${zl(total)}, czyli ${zl(-left)} ponad budżet. Zwiększ budżet, skróć liczbę dni albo wyłącz jeden posiłek.</div>`
+    : left > cfg.budget * 0.3
+      ? `<div class="note ok">Zostaje ${zl(left)}. Możesz dorzucić owoce i przekąski albo wydłużyć plan.</div>`
+      : `<div class="note ok">Mieści się w budżecie, zostaje ${zl(left)}.</div>`;
+  return `<div class="big"><b>${zl(total)}</b><span>z ${zl(cfg.budget)}</span></div>
+    <div class="meter${over ? " over" : ""}"><i style="width:${Math.min(100, total / cfg.budget * 100)}%"></i></div>
+    <div class="stats"><div><b>${zl(total / cfg.persons / cfg.days)}</b><small>osoba / dzień</small></div><div><b>${portions}</b><small>porcji</small></div><div><b>${items.length}</b><small>produktów</small></div></div>
+    ${note}`;
+}
+
+function render() {
+  const {items, total} = basket(groups);
+  $("#summary").innerHTML = summaryHTML(total, items);
+  renderPlan(total, items);
+  renderList(items, total);
+  renderPrices();
+}
+
+function ingList(r, portions) {
+  return Object.entries(RECIPES[r].i).map(([id, a]) => {
+    const p = P[id];
+    return `<li>${p.name}: ${amount(a * portions, p.unit)}${cfg.pantry && p.pantry ? " (z domu)" : ""}</li>`;
+  }).join("");
+}
+
+function renderPlan(total, items) {
+  let html = `<div class="card sum">${summaryHTML(total, items)}</div>
+    <button type="button" class="btn plain" id="reroll">Wylosuj inny plan</button>`;
+  for (let d = 0; d < cfg.days; d++) {
+    const cost = groups.filter(g => g.days.includes(d)).reduce((s, g) => s + portionCost(g.r) * cfg.persons, 0);
+    html += `<div class="sec"><div class="dayhd"><b>Dzień ${d + 1}</b><span>${dayLabel(d)} · ${zl(cost)}</span></div><div class="card">`;
+    cfg.meals.forEach(m => {
+      const gi = groups.findIndex(g => g.meal === m && g.days.includes(d));
+      const g = groups[gi], r = RECIPES[g.r];
+      const second = g.days[0] !== d;
+      const portions = second ? cfg.persons : cfg.persons * g.days.length;
+      const prefs = r.tags.filter(t => cfg.prefs.includes(t)).map(t => TAG_NAMES[t]).join(", ");
+      html += `<div class="row meal"><div class="txt"><span class="kind">${MEAL_NAMES[m]}</span>
+        <details><summary>${r.n}</summary><ul class="ing">${second ? "<li>Odgrzewasz porcję z wczoraj.</li>" : ingList(g.r, portions)}</ul></details>
+        <span class="meta">${second ? "z wczoraj" : r.min + " min"}${!second && g.days.length > 1 ? ` · gotujesz ${portions} porcji` : ""}${prefs ? ` · <span class="pref">${prefs}</span>` : ""}${second ? "" : ` · <button type="button" data-swap="${gi}" aria-label="Zamień: ${r.n}">Zamień</button>`}</span>
+        </div><span class="tag"><b>${zl(portionCost(g.r)).replace(" zł", "")}</b><small>zł / porcja</small></span></div>`;
+    });
+    html += `</div></div>`;
+  }
+  $("#view-plan").innerHTML = html;
+}
+
+function renderList(items, total) {
+  let html = "";
+  DEPTS.forEach(([dk, dl]) => {
+    const rows = items.filter(it => it.p.dept === dk).sort((a, b) => a.p.name.localeCompare(b.p.name, "pl"));
+    if (!rows.length) return;
+    html += `<div class="sec"><div class="hd">${dl}</div><div class="card">`;
+    rows.forEach(it => {
+      const id = it.p.id, on = !!checked[id];
+      const leftNote = it.left > it.p.qty * 0.15 ? `, zostanie ok. ${amount(it.left, it.p.unit)}` : "";
+      html += `<div class="row item${on ? " done" : ""}"><input class="check" type="checkbox" id="chk-${id}" data-chk="${id}"${on ? " checked" : ""}>
+        <label for="chk-${id}"><span>${it.packs} × ${it.p.name}</span><small>${amount(it.p.qty, it.p.unit)} po ${zl(price(id))}${leftNote}</small></label>
+        <span class="p">${zl(it.cost)}</span></div>`;
+    });
+    html += `</div></div>`;
+  });
+  const inCart = items.filter(it => checked[it.p.id]).reduce((s, it) => s + it.cost, 0);
+  html += `<div class="sec"><div class="card">
+    <div class="row total"><span>Razem</span><b>${zl(total)}</b></div>
+    <div class="row"><span>W koszyku</span><span class="v">${zl(inCart)}</span></div>
+    <div class="row"><span>Zostało do kupienia</span><span class="v">${zl(total - inCart)}</span></div>
+  </div><div class="ft">${cfg.persons} os. · ${cfg.days} dni · ceny orientacyjne</div></div>`;
+  $("#view-list").innerHTML = html;
+}
+
+function renderPrices() {
+  const a = document.activeElement;
+  if (a && a.dataset && a.dataset.price) return;
+  let html = `<p class="foot">Ceny w prototypie są orientacyjne (Lidl, Polska, jesień 2026) i wpisane ręcznie. Popraw je według paragonu albo półki, a plan przeliczy się od razu. Zmiany zostają na tym urządzeniu.</p>`;
+  DEPTS.forEach(([dk, dl]) => {
+    html += `<div class="sec"><div class="hd">${dl}</div><div class="card">`;
+    PRODUCTS.filter(p => p[5] === dk).forEach(([id, name, qty, unit]) => {
+      html += `<div class="row prow"><label for="price-${id}">${name} <small>${amount(qty, unit)}</small></label>
+        <input id="price-${id}" data-price="${id}" type="number" step="0.01" min="0" inputmode="decimal" value="${price(id).toFixed(2)}" class="${id in priceOverrides ? "changed" : ""}"></div>`;
+    });
+    html += `</div></div>`;
+  });
+  html += `<button type="button" class="btn plain" id="resetPrices">Przywróć ceny domyślne</button>`;
+  $("#view-prices").innerHTML = html;
+}
+
+// ---------- Zakładki
+const TABS = {form: "Planuj", plan: "Jadłospis", list: "Lista zakupów", prices: "Ceny"};
+function showTab(t) {
+  Object.keys(TABS).forEach(x => { $("#tab-" + x).setAttribute("aria-selected", x === t); $("#view-" + x).hidden = x !== t; });
+  $("#title").textContent = TABS[t];
+  window.scrollTo(0, 0);
+}
+Object.keys(TABS).forEach(t => $("#tab-" + t).addEventListener("click", () => showTab(t)));
+document.querySelectorAll("[data-go]").forEach(b => b.addEventListener("click", () => showTab(b.dataset.go)));
+
+// ---------- Zdarzenia
+$("#view-form").addEventListener("submit", e => {
+  e.preventDefault();
+  if (document.activeElement) document.activeElement.blur();
+  generate(true);
+  showTab("plan");
+});
+$("#view-plan").addEventListener("click", e => {
+  if (e.target.id === "reroll") { generate(true); return; }
+  const b = e.target.closest("[data-swap]"); if (b) swapGroup(+b.dataset.swap);
+});
+$("#view-list").addEventListener("change", e => {
+  const id = e.target.dataset.chk; if (!id) return;
+  if (e.target.checked) checked[id] = true; else delete checked[id];
+  save("pl-checked", checked);
+  const b = basket(groups); renderList(b.items, b.total);
+});
+$("#view-prices").addEventListener("input", e => {
+  const id = e.target.dataset.price; if (!id) return;
+  const v = parseFloat(e.target.value);
+  if (!Number.isFinite(v) || v < 0) return;
+  if (Math.abs(v - P[id].price) < 0.005) delete priceOverrides[id]; else priceOverrides[id] = v;
+  e.target.classList.toggle("changed", id in priceOverrides);
+  save("pl-prices", priceOverrides);
+  render();
+});
+$("#view-prices").addEventListener("click", e => {
+  if (e.target.id !== "resetPrices") return;
+  priceOverrides = {}; save("pl-prices", priceOverrides);
+  e.target.blur(); render();
+});
+
+generate(false);
+</script>
+
+<style>body { padding-top: calc(8px + env(safe-area-inset-top, 0px)); }</style>
+<script>
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {}));
+}
+</script>
+</body>
+</html>
