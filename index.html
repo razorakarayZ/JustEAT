@@ -200,7 +200,19 @@ input[type="range"] { width: 100%; accent-color: var(--accent); margin: 0; }
 .tag b { font: 700 16px var(--f-num); font-variant-numeric: tabular-nums; }
 .tag small { font-size: 10px; font-weight: 500; }
 
-.dayhd { display: flex; justify-content: space-between; align-items: baseline; padding: 0 16px; }
+.dayhd { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 0 16px; position: relative; }
+.dayl { display: flex; align-items: center; gap: 10px; }
+.porbtn { display: inline-flex; align-items: center; gap: 4px; border: 0; border-radius: 999px; padding: 4px 10px 4px 7px; background: var(--card); color: var(--accent); font-size: 13px; font-weight: 600; cursor: pointer; }
+.porbtn svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+.porbtn.on, .porbtn[aria-expanded="true"] { background: var(--accent-soft); }
+.porbtn:disabled { opacity: .4; cursor: default; }
+.menu.pop { top: 38px; left: 8px; right: auto; z-index: 30; width: min(330px, calc(100vw - 32px)); transform-origin: top left; }
+.menu.pop.anim { animation: popIn .18s ease; }
+@keyframes popIn { from { transform: scale(.92); opacity: 0; } }
+.pml { flex: 1; min-width: 0; }
+.pml small { display: block; font-size: 13px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.stepper b { width: 40px; text-align: center; font: 600 17px var(--f-num); font-variant-numeric: tabular-nums; border-left: 0.5px solid var(--sep); border-right: 0.5px solid var(--sep); }
+.pnote { padding: 2px 16px 12px; font-size: 12px; color: var(--muted); }
 .dayhd b { font-size: 20px; font-weight: 700; letter-spacing: -0.01em; }
 .dayhd span { font-size: 14px; color: var(--muted); font-variant-numeric: tabular-nums; }
 .meal { align-items: flex-start; padding-block: 11px; }
@@ -303,7 +315,17 @@ body.full { padding-bottom: calc(24px + env(safe-area-inset-bottom, 0px)); }
 }
 @keyframes tagPop { 0%, 28% { transform: scale(0) rotate(-3deg); } 40% { transform: scale(1.15) rotate(-3deg); } 50%, 100% { transform: scale(1) rotate(-3deg); } }
 @media (prefers-reduced-motion: reduce) { .cheer.go svg, .cheer.go b { animation: none; } }
-@media (prefers-reduced-motion: reduce) { .meter i, .sw, .sw::before, .toast, .toast.show, .theme i, .menu, .menu.open { transition: none; } .xchip.new { animation: none; } }
+.sheet { position: fixed; inset: 0; z-index: 35; display: flex; align-items: flex-end; justify-content: center; padding: 16px 16px calc(16px + env(safe-area-inset-bottom, 0px)); background: rgba(0,0,0,.4); }
+.sheet[hidden] { display: none; }
+.sheet-card { width: min(480px, 100%); display: grid; gap: 10px; padding: 20px 16px 16px; background: var(--card); border-radius: 18px; text-align: center; box-shadow: 0 10px 40px rgba(0,0,0,.25); animation: sheetUp .22s ease-out; }
+.sheet-card:focus { outline: none; }
+.sheet-card b { font-size: 18px; }
+.sheet-card p { margin: 0 0 6px; font-size: 14px; color: var(--muted); }
+.btn.soft { background: var(--fill); color: var(--accent); }
+.btn.soft.quiet { color: var(--ink); font-weight: 500; }
+@keyframes sheetUp { from { transform: translateY(40px); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .sheet-card { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .meter i, .sw, .sw::before, .toast, .toast.show, .theme i, .menu, .menu.open { transition: none; } .xchip.new, .menu.pop.anim { animation: none; } }
 </style>
 
 <div class="wrap">
@@ -365,13 +387,13 @@ body.full { padding-bottom: calc(24px + env(safe-area-inset-bottom, 0px)); }
     <div class="sec">
       <div class="hd">Ulubione dania</div>
       <div class="card" id="favs"></div>
-      <div class="ft" id="favsNote">Zaznaczone ulubione trafią do planu w pierwszej kolejności. Gwiazdka usuwa danie z ulubionych.</div>
+      <div class="ft" id="favsNote">Zaznacz ulubione, które mają trafić do planu w pierwszej kolejności. Gwiazdka usuwa danie z ulubionych.</div>
     </div>
 
     <div class="sec">
       <div class="hd">Co masz w domu?</div>
       <div class="card" id="pantry"></div>
-      <div class="ft">Odznacz to, czego brakuje. Trafi na listę zakupów, jeśli przepis tego wymaga.</div>
+      <div class="ft">Zaznacz to, co masz w domu. Reszta trafi na listę zakupów, jeśli przepis tego wymaga.</div>
     </div>
 
     <div class="sec">
@@ -404,6 +426,14 @@ body.full { padding-bottom: calc(24px + env(safe-area-inset-bottom, 0px)); }
   <svg viewBox="0 0 24 24"><rect class="goods" x="8" y="4.2" width="3" height="4.6" rx=".6"/><rect class="goods" x="11.8" y="2.8" width="2.6" height="6" rx=".6"/><circle class="goods" cx="16.4" cy="7.2" r="1.7"/><path d="M3 4h2.2l2.3 11h10.8l2-8H6.3"/><circle cx="9" cy="19.5" r="1.4"/><circle cx="17" cy="19.5" r="1.4"/></svg>
 </div></div>
 
+<div class="sheet" id="sheet" hidden><div class="sheet-card" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="sheetTitle" aria-describedby="sheetText">
+  <b id="sheetTitle">Masz już ułożony plan</b>
+  <p id="sheetText">Ułóż nowy od zera, popraw ustawienia obecnego albo wróć do niego.</p>
+  <button type="button" class="btn" id="shNew">Ułóż nowy plan</button>
+  <button type="button" class="btn soft" id="shEdit">Edytuj plan</button>
+  <button type="button" class="btn soft quiet" id="shBack">Wróć</button>
+</div></div>
+
 <div class="toast" id="toast" role="status" aria-live="polite"><span id="toastMsg"></span><button type="button" id="undo">Cofnij</button></div>
 
 <nav class="tabbar" aria-label="Zakładki"><div role="tablist">
@@ -414,16 +444,17 @@ body.full { padding-bottom: calc(24px + env(safe-area-inset-bottom, 0px)); }
 </div></nav>
 
 <script>
-// ---------- Dane: produkty [id, nazwa, opakowanie, jednostka, cena zł, dział, w spiżarni?]
+// ---------- Dane: produkty [id, nazwa, opakowanie, jednostka, cena zł, dział, w spiżarni?, luzem: waga/ilość 1 sztuki]
+// Produkty luzem: cena jest za „opakowanie” (1 kg albo 1 szt.), a kupuje się pełne sztuki, tyle ile trzeba.
 const PRODUCTS = [
-  ["ziemniaki","Ziemniaki",2000,"g",6.99,"veg"],
-  ["cebula","Cebula",1000,"g",3.49,"veg"],
-  ["czosnek","Czosnek",3,"gł.",2.99,"veg"],
-  ["marchew","Marchew",1000,"g",2.99,"veg"],
-  ["pomidory","Pomidory",500,"g",6.99,"veg"],
+  ["ziemniaki","Ziemniaki",1000,"g",3.49,"veg",false,150],
+  ["cebula","Cebula",1000,"g",3.49,"veg",false,120],
+  ["czosnek","Czosnek",1,"gł.",1.29,"veg",false,1],
+  ["marchew","Marchew",1000,"g",2.99,"veg",false,80],
+  ["pomidory","Pomidory",1000,"g",9.99,"veg",false,120],
   ["koktajl","Pomidorki koktajlowe",250,"g",4.99,"veg"],
   ["ogorek","Ogórek zielony",1,"szt",2.49,"veg"],
-  ["papryka","Papryka czerwona",500,"g",7.99,"veg"],
+  ["papryka","Papryka czerwona",1000,"g",14.99,"veg",false,200],
   ["brokul","Brokuł",1,"szt",4.99,"veg"],
   ["cukinia","Cukinia",1,"szt",3.49,"veg"],
   ["pieczarki","Pieczarki",500,"g",6.99,"veg"],
@@ -431,9 +462,9 @@ const PRODUCTS = [
   ["kapusta","Kapusta biała",1,"szt",4.99,"veg"],
   ["awokado","Awokado",1,"szt",3.99,"veg"],
   ["dynia","Dynia hokkaido",1,"szt",6.99,"veg"],
-  ["banan","Banany",1000,"g",5.99,"veg"],
-  ["jablka","Jabłka",2000,"g",6.99,"veg"],
-  ["cytryna","Cytryny",4,"szt",4.99,"veg"],
+  ["banan","Banany",1000,"g",5.99,"veg",false,120],
+  ["jablka","Jabłka",1000,"g",4.49,"veg",false,180],
+  ["cytryna","Cytryny",1,"szt",1.29,"veg",false,1],
   ["chleb","Chleb wiejski",500,"g",4.49,"bread"],
   ["bulka","Bułka pszenna",1,"szt",0.45,"bread"],
   ["tost","Chleb tostowy",500,"g",4.29,"bread"],
@@ -497,7 +528,7 @@ const PRODUCTS = [
 ];
 const DEPTS = [["veg","Warzywa i owoce"],["bread","Pieczywo"],["dairy","Nabiał i lodówka"],["meat","Mięso i ryby"],["frozen","Mrożonki"],["dry","Makarony, kasze, sypkie"],["jar","Puszki i słoiki"],["base","Podstawy"]];
 const P = {};
-PRODUCTS.forEach(([id,name,qty,unit,price,dept,pantry]) => P[id] = {id,name,qty,unit,price,dept,pantry:!!pantry});
+PRODUCTS.forEach(([id,name,qty,unit,price,dept,pantry,loose]) => P[id] = {id,name,qty,unit,price,dept,pantry:!!pantry,loose:loose || 0});
 
 // ---------- Przepisy: ilości na 1 porcję. d: m = mięso, r = ryba, v = wegetariańskie
 const R = (n,t,d,tags,min,i) => ({n,t,d,tags,min,i});
@@ -555,9 +586,16 @@ const TAG_NAMES = Object.fromEntries(PREFS);
 function load(k, d) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch (e) { return d; } }
 function save(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
 let priceOverrides = load("pl-prices", {});
+// Te produkty przeszły z worków na luzem (cena za kg albo sztukę), więc stare poprawki cen już nie pasują.
+if (load("pl-prices-v", 1) < 2) {
+  ["ziemniaki","czosnek","pomidory","papryka","jablka","cytryna"].forEach(id => delete priceOverrides[id]);
+  save("pl-prices", priceOverrides); save("pl-prices-v", 2);
+}
 let checked = load("pl-checked", {});
-let missing = load("pl-missing", {});
-let favs = load("pl-favs", {}); // nazwa dania -> czy brać je do planu
+// Domyślnie wszystko odznaczone: „have” trzyma tylko to, co użytkownik sam zaznaczył (stare „pl-missing” pomijamy).
+let have = load("pl-have", {});
+let favs = load("pl-favs", {}); // nazwa dania -> czy brać je do planu (nowe ulubione: odznaczone)
+if (load("pl-favs-v", 1) < 2) { Object.keys(favs).forEach(n => { favs[n] = false; }); save("pl-favs", favs); save("pl-favs-v", 2); }
 let extra = load("pl-extra", []);
 if (typeof extra === "string") extra = [...new Set(extra.split("\n").map(s => s.trim()).filter(Boolean))];
 
@@ -580,11 +618,11 @@ function mulberry32(a) { return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = 
 // ---------- Formularz
 $("#prefs").innerHTML = PREFS.map(([k, l]) => `<label class="chip"><input type="checkbox" id="pref-${k}" value="${k}"><span>${l}</span></label>`).join("");
 $("#pantry").innerHTML = PRODUCTS.filter(p => p[6]).map(([id, name]) =>
-  `<div class="row item"><input class="check" type="checkbox" id="have-${id}" data-have="${id}"${missing[id] ? "" : " checked"}><label for="have-${id}"><span>${name}</span></label></div>`).join("");
+  `<div class="row item"><input class="check" type="checkbox" id="have-${id}" data-have="${id}"${have[id] ? " checked" : ""}><label for="have-${id}"><span>${name}</span></label></div>`).join("");
 $("#pantry").addEventListener("change", e => {
   const id = e.target.dataset.have; if (!id) return;
-  if (e.target.checked) delete missing[id]; else missing[id] = true;
-  save("pl-missing", missing);
+  if (e.target.checked) have[id] = true; else delete have[id];
+  save("pl-have", have);
 });
 // Ulubione dania: gwiazdka w Jadłospisie, lista z wyborem w Planuj.
 const STAR = `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.2l2.7 5.5 6 .9-4.35 4.25 1 6L12 17l-5.4 2.85 1-6L3.3 9.6l6-.9z"/></svg>`;
@@ -601,7 +639,7 @@ function renderFavs() {
     }).join("");
 }
 function toggleFav(n, on) {
-  if (on) favs[n] = true; else delete favs[n];
+  if (on) favs[n] = false; else delete favs[n];
   save("pl-favs", favs); renderFavs();
   if (cfg) render();
 }
@@ -671,7 +709,8 @@ function matches(r) { return cfg.prefs.filter(p => p === "wege" ? r.d === "v" : 
 function basket(gs) {
   const need = {};
   gs.forEach(g => {
-    const portions = cfg.persons * g.days.length;
+    if (g.r < 0) return;
+    const portions = groupPortions(g);
     for (const [id, a] of Object.entries(RECIPES[g.r].i)) need[id] = (need[id] || 0) + a * portions;
   });
   const items = [];
@@ -679,14 +718,29 @@ function basket(gs) {
   for (const [id, n] of Object.entries(need)) {
     const p = P[id];
     if (atHome(id)) continue;
-    const packs = Math.max(1, Math.ceil(n / p.qty - 1e-6));
-    const cost = packs * price(id);
+    // Luzem: pełne sztuki (packs = liczba sztuk), w innym razie pełne opakowania.
+    const step = p.loose || p.qty;
+    const packs = Math.max(1, Math.ceil(n / step - 1e-6));
+    const buy = packs * step, cost = buy * price(id) / p.qty;
     total += cost;
-    items.push({p, need: n, packs, cost, left: packs * p.qty - n});
+    items.push({p, need: n, packs, buy, cost, left: buy - n});
   }
   return {items, total};
 }
+const itemName = it => it.p.loose && it.p.unit === "g" ? `${it.p.name}, ${it.packs} szt.` : `${it.packs} × ${it.p.name}`;
+function itemNote(it) {
+  const p = it.p;
+  if (!p.loose) return `${amount(p.qty, p.unit)} po ${zl(price(p.id))}${it.left > p.qty * 0.15 ? `, zostanie ok. ${amount(it.left, p.unit)}` : ""}`;
+  return p.unit === "g" ? `luzem, ok. ${amount(it.buy, "g")} po ${zl(price(p.id))}/kg` : `luzem po ${zl(price(p.id))}/${p.unit}`;
+}
 const totalOf = gs => basket(gs).total;
+// Porcje: domyślnie tyle, ile osób; g.por = {dzień: liczba} nadpisuje to dla konkretnego dnia.
+const por = (g, d) => g.por && g.por[d] != null ? g.por[d] : cfg.persons;
+const groupPortions = g => g.days.reduce((s, d) => s + por(g, d), 0);
+const porWord = n => n === 1 ? "porcja" : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14) ? "porcje" : "porcji";
+// Jak bardzo resztka z danego działu się psuje: świeże 1, mrożonki i słoiki mało, suche prawie wcale.
+const SPOIL = {veg: 1, bread: 1, dairy: 1, meat: 1, frozen: 0.3, jar: 0.2, dry: 0.1, base: 0};
+const spoilOf = gs => basket(gs).items.reduce((s, it) => s + it.left * price(it.p.id) / it.p.qty * SPOIL[it.p.dept], 0);
 const portionCost = r => Object.entries(RECIPES[r].i).reduce((s, [id, a]) => atHome(id) ? s : s + a * price(id) / P[id].qty, 0);
 
 function makeGroups() {
@@ -700,18 +754,25 @@ function makeGroups() {
 
 function choose(gs, rng) {
   const used = {};
-  gs.filter(g => g.locked).forEach(g => { used[g.r] = (used[g.r] || 0) + 1; });
+  // dec: dania już ustalone w tym losowaniu. Kara za resztki, które się zepsują (spoilOf),
+  // albo premia, gdy danie zużywa resztki, więc plan woli dania na tych samych produktach.
+  const dec = gs.filter(g => g.locked);
+  dec.forEach(g => { used[g.r] = (used[g.r] || 0) + 1; });
   gs.forEach(g => {
     if (g.locked) return;
     let best = -1, bestV = -Infinity;
+    const base = spoilOf(dec);
     for (const c of eligible(g.meal)) {
       const r = RECIPES[c], mt = matches(r);
-      let v = 1 + 1.6 * mt + rng() * 1.2 - (used[c] || 0) * (g.meal === "S" ? 0.9 : 2.4);
+      const waste = spoilOf(dec.concat({days: g.days, r: c})) - base;
+      // Limit kary i premii, żeby oszczędność nie przebijała tego, na co użytkownik ma ochotę.
+      let v = 1 + 1.6 * mt + rng() * 1.2 - (used[c] || 0) * (g.meal === "S" ? 0.9 : 2.4) - Math.max(-1.5, Math.min(2, waste * 0.5));
       if (cfg.favs.includes(c) && !used[c]) v += 3.5;
       if (cfg.prefs.length && !mt) v -= 0.6;
       if (v > bestV) { bestV = v; best = c; }
     }
     g.r = best; used[best] = (used[best] || 0) + 1;
+    dec.push(g);
   });
 }
 
@@ -751,7 +812,7 @@ function generate(newSeed) {
   cfg = readForm();
   if (newSeed) seed = Math.floor(Math.random() * 1e9);
   groups = makeGroups();
-  planSaved = false; preSaveLocks = null;
+  planSaved = false; preSaveLocks = null; porOpen = -1;
   choose(groups, mulberry32(seed));
   fitBudget(groups);
   checked = {}; save("pl-checked", checked);
@@ -792,7 +853,7 @@ function swapGroup(gi) {
 
 // ---------- Cofanie
 let undoState = null, toastTimer;
-const snapshot = () => ({groups: groups.map(g => ({...g, days: [...g.days]})), checked: {...checked}});
+const snapshot = () => ({groups: groups.map(g => ({...g, days: [...g.days], por: g.por && {...g.por}})), checked: {...checked}});
 const undoTo = prev => () => { groups = prev.groups; checked = prev.checked; save("pl-checked", checked); render(); };
 // undo: funkcja, która cofa akcję; bez niej toast jest tylko informacją.
 function showToast(msg, undo) {
@@ -827,9 +888,10 @@ function savePlan() {
     id: Date.now(), persons: cfg.persons, days: cfg.days, total,
     plan: Array.from({length: cfg.days}, (_, d) => ({label: dayLabel(d), meals: cfg.meals.map(m => {
       const g = groups.find(x => x.meal === m && x.days.includes(d));
-      return `${MEAL_NAMES[m]}: ${RECIPES[g.r].n}${g.days[0] !== d ? " (z wczoraj)" : ""}`;
+      const n = por(g, d);
+      return `${MEAL_NAMES[m]}: ${RECIPES[g.r].n}${g.days[0] !== d ? " (z wczoraj)" : ""}${n !== cfg.persons ? ` · ${n} ${porWord(n)}` : ""}`;
     })})),
-    list: items.slice().sort((a, b) => order.indexOf(a.p.dept) - order.indexOf(b.p.dept) || a.p.name.localeCompare(b.p.name, "pl")).map(it => [`${it.packs} × ${it.p.name}`, it.cost]),
+    list: items.slice().sort((a, b) => order.indexOf(a.p.dept) - order.indexOf(b.p.dept) || a.p.name.localeCompare(b.p.name, "pl")).map(it => [itemName(it), it.cost]),
     extra: [...extra],
   };
   hist.unshift(entry); hist = hist.slice(0, 50);
@@ -877,7 +939,7 @@ function dayLabel(d) {
 }
 
 function summaryHTML(total, items) {
-  const portions = groups.reduce((s, g) => s + g.days.length, 0) * cfg.persons;
+  const portions = groups.reduce((s, g) => s + groupPortions(g), 0);
   const over = total > cfg.budget, left = cfg.budget - total;
   const note = over
     ? `<div class="note bad">Najtańszy plan, jaki udało się ułożyć, kosztuje ${zl(total)}, czyli ${zl(-left)} ponad budżet. Zwiększ budżet, skróć liczbę dni albo wyłącz jeden posiłek.</div>`
@@ -905,17 +967,34 @@ function ingList(r, portions) {
   }).join("");
 }
 
+// Panel porcji: otwarty dzień (-1 = zamknięty); porAnim tylko przy otwarciu, nie przy każdym +/−.
+let porOpen = -1, porAnim = false;
+const PLATE = `<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="6.5"/><circle cx="12" cy="12" r="3.5"/><path d="M2.5 4v4.5a1.5 1.5 0 0 0 3 0V4M4 8.5V20M21.5 4c-1.6 1-2.3 3-2.3 6.5h2.3V20"/></svg>`;
+function porPanel(d) {
+  const rows = cfg.meals.map(m => {
+    const g = groups.find(x => x.meal === m && x.days.includes(d)), n = por(g, d), name = `${MEAL_NAMES[m]}, dzień ${d + 1}`;
+    return `<div class="row"><span class="pml">${MEAL_NAMES[m]}<small>${esc(RECIPES[g.r].n)}${g.days[0] !== d ? " (z wczoraj)" : ""}</small></span>
+      <div class="stepper"><button type="button" data-pstep="${d},${m},-1" aria-label="Mniej porcji: ${name}"${n <= 0 ? " disabled" : ""}>−</button><b aria-live="polite">${n}</b><button type="button" data-pstep="${d},${m},1" aria-label="Więcej porcji: ${name}"${n >= 20 ? " disabled" : ""}>+</button></div></div>`;
+  }).join("");
+  return `<div class="menu pop open${porAnim ? " anim" : ""}" role="dialog" aria-label="Porcje, dzień ${d + 1}"><div class="hd">Porcje · Dzień ${d + 1}</div>${rows}
+    <div class="pnote">Domyślnie ${cfg.persons} ${porWord(cfg.persons)}, tyle ile osób. Lista zakupów przelicza się od razu.</div></div>`;
+}
+
 function renderPlan(total, items) {
   let html = `<div class="card sum">${summaryHTML(total, items)}</div>
     <button type="button" class="btn plain" id="reroll"${planSaved ? " disabled" : ""}>Wylosuj inny plan</button>`;
   for (let d = 0; d < cfg.days; d++) {
-    const cost = groups.filter(g => g.days.includes(d)).reduce((s, g) => s + portionCost(g.r) * cfg.persons, 0);
-    html += `<div class="sec"><div class="dayhd"><b>Dzień ${d + 1}</b><span>${dayLabel(d)} · ${zl(cost)}</span></div><div class="card">`;
+    const dayGroups = groups.filter(g => g.days.includes(d));
+    const cost = dayGroups.reduce((s, g) => s + portionCost(g.r) * por(g, d), 0);
+    const changed = dayGroups.some(g => por(g, d) !== cfg.persons), open = porOpen === d;
+    html += `<div class="sec"><div class="dayhd"><div class="dayl"><b>Dzień ${d + 1}</b>
+      <button type="button" class="porbtn${changed ? " on" : ""}" data-por="${d}" aria-expanded="${open}"${planSaved ? " disabled" : ""}>${PLATE}Porcje</button></div>
+      <span>${dayLabel(d)} · ${zl(cost)}</span>${open ? porPanel(d) : ""}</div><div class="card">`;
     cfg.meals.forEach(m => {
       const gi = groups.findIndex(g => g.meal === m && g.days.includes(d));
       const g = groups[gi], r = RECIPES[g.r];
       const second = g.days[0] !== d;
-      const portions = second ? cfg.persons : cfg.persons * g.days.length;
+      const portions = second ? por(g, d) : groupPortions(g);
       const prefs = r.tags.filter(t => cfg.prefs.includes(t)).map(t => TAG_NAMES[t]).join(", ");
       const lock = second ? `<span class="lock" aria-hidden="true"></span>`
         : `<button type="button" class="lock" data-lock="${gi}"${planSaved ? " disabled" : ""} aria-pressed="${!!g.locked}" aria-label="${g.locked ? "Odblokuj" : "Zablokuj"}: ${r.n}" title="${g.locked ? "Odblokuj" : "Zablokuj"}">
@@ -924,7 +1003,7 @@ function renderPlan(total, items) {
       const fav = r.n in favs;
       html += `<div class="row meal${g.locked ? " locked" : ""}"><button type="button" class="star${fav ? " on" : ""}" data-fav="${esc(r.n)}" aria-pressed="${fav}" aria-label="${fav ? "Usuń z ulubionych" : "Dodaj do ulubionych"}: ${esc(r.n)}">${STAR}</button><div class="txt"><span class="kind">${MEAL_NAMES[m]}</span>
         <details><summary>${r.n}</summary><ul class="ing">${second ? "<li>Odgrzewasz porcję z wczoraj.</li>" : ingList(g.r, portions)}</ul></details>
-        <span class="meta">${second ? "z wczoraj" : r.min + " min"}${!second && g.days.length > 1 ? ` · gotujesz ${portions} porcji` : ""}${prefs ? ` · <span class="pref">${prefs}</span>` : ""}${actions}</span>
+        <span class="meta">${second ? "z wczoraj" : r.min + " min"}${portions === 0 ? " · pomijasz" : !second && (g.days.length > 1 || portions !== cfg.persons) ? ` · gotujesz ${portions} ${porWord(portions)}` : second && portions !== cfg.persons ? ` · ${portions} ${porWord(portions)}` : ""}${prefs ? ` · <span class="pref">${prefs}</span>` : ""}${actions}</span>
         </div><div class="side">${lock}<span class="tag"><b>${zl(portionCost(g.r)).replace(" zł", "")}</b><small>zł / porcja</small></span></div></div>`;
     });
     html += `</div></div>`;
@@ -944,9 +1023,8 @@ function renderList(items, total) {
     html += `<div class="sec"><div class="hd">${dl}</div><div class="card">`;
     rows.forEach(it => {
       const id = it.p.id, on = !!checked[id];
-      const leftNote = it.left > it.p.qty * 0.15 ? `, zostanie ok. ${amount(it.left, it.p.unit)}` : "";
       html += `<div class="row item${on ? " done" : ""}"><input class="check" type="checkbox" id="chk-${id}" data-chk="${id}"${on ? " checked" : ""}>
-        <label for="chk-${id}"><span>${it.packs} × ${it.p.name}</span><small>${amount(it.p.qty, it.p.unit)} po ${zl(price(id))}${leftNote}</small></label>
+        <label for="chk-${id}"><span>${itemName(it)}</span><small>${itemNote(it)}</small></label>
         <span class="p">${zl(it.cost)}</span></div>`;
     });
     html += `</div></div>`;
@@ -976,8 +1054,8 @@ function renderPrices() {
   let html = `<p class="foot">Ceny w prototypie są orientacyjne (Lidl, Polska, jesień 2026) i wpisane ręcznie. Popraw je według paragonu albo półki, a plan przeliczy się od razu. Zmiany zostają na tym urządzeniu.</p>`;
   DEPTS.forEach(([dk, dl]) => {
     html += `<div class="sec"><div class="hd">${dl}</div><div class="card">`;
-    PRODUCTS.filter(p => p[5] === dk).forEach(([id, name, qty, unit]) => {
-      html += `<div class="row prow"><label for="price-${id}">${name} <small>${amount(qty, unit)}</small></label>
+    PRODUCTS.filter(p => p[5] === dk).forEach(([id, name, qty, unit, , , , loose]) => {
+      html += `<div class="row prow"><label for="price-${id}">${name} <small>${loose ? (unit === "g" ? "za 1 kg luzem" : `za 1 ${unit} luzem`) : amount(qty, unit)}</small></label>
         <input id="price-${id}" data-price="${id}" type="number" step="0.01" min="0" inputmode="decimal" value="${price(id).toFixed(2)}" class="${id in priceOverrides ? "changed" : ""}"></div>`;
     });
     html += `</div></div>`;
@@ -993,12 +1071,34 @@ function showTab(t) {
   curTab = t;
   Object.keys(TABS).forEach(x => { $("#tab-" + x).setAttribute("aria-selected", x === t); $("#view-" + x).hidden = x !== t; });
   $("#view-prices").hidden = true; $("#back").hidden = true; document.body.classList.remove("full");
-  toggleMenu(false);
+  toggleMenu(false); closePor();
   $("#title").textContent = TABS[t];
   hideToast();
   window.scrollTo(0, 0);
 }
-Object.keys(TABS).forEach(t => $("#tab-" + t).addEventListener("click", () => showTab(t)));
+Object.keys(TABS).forEach(t => $("#tab-" + t).addEventListener("click", () => {
+  if (t === "form" && planActive && curTab !== "form") openSheet(); else showTab(t);
+}));
+
+// Po „Ułóż plan…” zakładka Planuj jest zablokowana; wejście w nią pyta, co zrobić z obecnym planem.
+let planActive = false;
+function openSheet() { toggleMenu(false); hideToast(); $("#sheet").hidden = false; $(".sheet-card").focus(); }
+function closeSheet() { $("#sheet").hidden = true; }
+const sheetBack = () => { closeSheet(); showTab(planSaved ? "list" : "plan"); };
+function resetForm() {
+  $("#budget").value = $("#budgetRange").value = 250;
+  $("#persons").value = 2; $("#days").value = 5;
+  ["S","O","K"].forEach(m => { $("#meal-" + m).checked = true; });
+  $("#diet-all").checked = true;
+  document.querySelectorAll("#prefs input").forEach(i => { i.checked = false; });
+  $("#batch").checked = false;
+  Object.keys(favs).forEach(n => { favs[n] = false; }); save("pl-favs", favs); renderFavs();
+}
+$("#shNew").addEventListener("click", () => { closeSheet(); planActive = false; resetForm(); showTab("form"); });
+$("#shEdit").addEventListener("click", () => { closeSheet(); planActive = false; showTab("form"); });
+$("#shBack").addEventListener("click", sheetBack);
+$("#sheet").addEventListener("click", e => { if (e.target.id === "sheet") sheetBack(); });
+document.addEventListener("keydown", e => { if (e.key === "Escape" && !$("#sheet").hidden) sheetBack(); });
 
 // Ceny: pełny ekran otwierany z ustawień, „Wróć” wraca do ostatniej zakładki.
 function openPrices() {
@@ -1020,6 +1120,9 @@ function toggleMenu(open) {
 }
 $("#gear").addEventListener("click", () => toggleMenu(!$("#menu").classList.contains("open")));
 document.addEventListener("click", e => { if (!e.target.closest("#menu, #gear")) toggleMenu(false); });
+function closePor() { if (porOpen >= 0) { porOpen = -1; render(); } }
+document.addEventListener("click", e => { if (!e.target.closest(".pop, [data-por]")) closePor(); });
+document.addEventListener("keydown", e => { if (e.key === "Escape") closePor(); });
 document.addEventListener("keydown", e => { if (e.key === "Escape" && $("#menu").classList.contains("open")) { toggleMenu(false); $("#gear").focus(); } });
 
 // ---------- Motyw: wybór użytkownika albo ustawienia systemu
@@ -1045,9 +1148,18 @@ $("#view-form").addEventListener("submit", e => {
   e.preventDefault();
   if (document.activeElement) document.activeElement.blur();
   generate(true);
+  planActive = true;
   showTab("plan");
 });
 $("#view-plan").addEventListener("click", e => {
+  const pb = e.target.closest("[data-por]");
+  if (pb) { const d = +pb.dataset.por; porAnim = porOpen !== d; porOpen = porOpen === d ? -1 : d; render(); return; }
+  const ps = e.target.closest("[data-pstep]");
+  if (ps) {
+    const [d, m, delta] = ps.dataset.pstep.split(","), g = groups.find(x => x.meal === m && x.days.includes(+d));
+    g.por = {...g.por, [d]: Math.max(0, Math.min(20, por(g, +d) + +delta))};
+    porAnim = false; render(); return;
+  }
   if (e.target.id === "reroll") { if (!planSaved) reroll(); return; }
   if (e.target.id === "savePlan") { savePlan(); return; }
   if (e.target.id === "newPlan") { unsave(); window.scrollTo(0, 0); return; }
