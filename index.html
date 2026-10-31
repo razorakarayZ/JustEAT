@@ -97,6 +97,7 @@ button, input { font: inherit; color: inherit; }
 .top h1 { margin: 2px 0 0; font-size: 34px; font-weight: 700; letter-spacing: -0.025em; line-height: 1.1; }
 
 .view { display: grid; gap: 22px; }
+.view[hidden] { display: none; }
 .sec { display: grid; gap: 6px; }
 .sec > .hd { font-size: 13px; text-transform: uppercase; letter-spacing: 0.03em; color: var(--muted); padding: 0 16px; }
 .sec > .ft { font-size: 13px; color: var(--muted); padding: 0 16px; }
@@ -172,6 +173,12 @@ input[type="range"] { width: 100%; accent-color: var(--accent); margin: 0; }
 .meal summary::-webkit-details-marker { display: none; }
 .meal .meta { font-size: 13px; color: var(--muted); }
 .meal .meta button { border: 0; background: none; padding: 0; color: var(--accent); font-size: 13px; font-weight: 600; cursor: pointer; }
+.meal.locked { background: var(--accent-soft); }
+.meal .side { display: flex; align-items: center; gap: 6px; flex: none; }
+.lock { width: 36px; height: 36px; display: grid; place-items: center; border: 0; border-radius: 50%; background: none; padding: 0; color: var(--muted); cursor: pointer; }
+.lock:empty { cursor: default; }
+.lock svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
+.meal.locked .lock { color: var(--accent); }
 .ing { margin: 6px 0 2px; padding-left: 18px; font-size: 14px; color: var(--muted); }
 .pref { color: var(--accent); }
 
@@ -200,8 +207,19 @@ input[type="range"] { width: 100%; accent-color: var(--accent); margin: 0; }
 .tabbar button { border: 0; background: none; display: grid; justify-items: center; gap: 2px; padding: 4px 8px; font-size: 10.5px; font-weight: 500; color: #8e8e93; cursor: pointer; min-width: 64px; }
 .tabbar svg { width: 26px; height: 26px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 .tabbar button[aria-selected="true"] { color: var(--accent); }
+.toast {
+  position: fixed; z-index: 30; left: 50%; bottom: calc(76px + env(safe-area-inset-bottom, 0px));
+  width: min(568px, calc(100% - 32px)); transform: translate(-50%, calc(100% + 100px));
+  display: flex; align-items: center; gap: 12px; padding: 12px 12px 12px 16px;
+  background: var(--card); border: 0.5px solid var(--sep); border-radius: 14px; box-shadow: 0 8px 28px rgba(0,0,0,.18);
+  font-size: 15px; visibility: hidden; transition: transform .3s ease, visibility 0s .3s;
+}
+.toast.show { transform: translate(-50%, 0); visibility: visible; transition: transform .3s ease; }
+.toast span { flex: 1; min-width: 0; }
+.toast button { border: 0; border-radius: 9px; padding: 7px 14px; background: var(--accent); color: var(--on-accent); font-weight: 600; cursor: pointer; flex: none; }
+.toast button[hidden] { display: none; }
 .foot { font-size: 13px; color: var(--muted); padding: 0 16px; margin: 0; }
-@media (prefers-reduced-motion: reduce) { .meter i, .sw, .sw::before { transition: none; } }
+@media (prefers-reduced-motion: reduce) { .meter i, .sw, .sw::before, .toast, .toast.show { transition: none; } }
 </style>
 
 <div class="wrap">
@@ -250,26 +268,27 @@ input[type="range"] { width: 100%; accent-color: var(--accent); margin: 0; }
     </div>
 
     <div class="sec">
+      <div class="hd">Co masz w domu?</div>
+      <div class="card" id="pantry"></div>
+      <div class="ft">Odznacz to, czego brakuje. Trafi na listę zakupów, jeśli przepis tego wymaga.</div>
+    </div>
+
+    <div class="sec">
       <div class="hd">Opcje</div>
       <div class="card">
-        <div class="row"><label for="pantry">Mam olej i oliwę<small>Sól i przyprawy zakładamy zawsze</small></label><input class="sw" type="checkbox" id="pantry" checked></div>
         <div class="row"><label for="batch">Obiad na 2 dni<small>Gotujesz raz, drugiego dnia odgrzewasz</small></label><input class="sw" type="checkbox" id="batch"></div>
       </div>
     </div>
 
     <button class="btn" type="submit">Ułóż plan i listę zakupów</button>
-
-    <div class="sec">
-      <div class="hd">Twój aktualny plan</div>
-      <div class="card sum" id="summary"></div>
-      <div class="btns"><button type="button" class="btn plain" data-go="plan">Jadłospis</button><button type="button" class="btn plain" data-go="list">Lista zakupów</button></div>
-    </div>
   </form>
 
   <section class="view" id="view-plan" hidden></section>
   <section class="view" id="view-list" hidden></section>
   <section class="view" id="view-prices" hidden></section>
 </div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"><span id="toastMsg"></span><button type="button" id="undo">Cofnij</button></div>
 
 <nav class="tabbar" aria-label="Zakładki"><div role="tablist">
   <button type="button" role="tab" id="tab-form" aria-selected="true"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg>Planuj</button>
@@ -352,6 +371,13 @@ const PRODUCTS = [
   ["orzech","Masło orzechowe",350,"g",8.99,"jar"],
   ["olej","Olej rzepakowy",1000,"ml",8.99,"base",true],
   ["oliwa","Oliwa z oliwek",500,"ml",19.99,"base",true],
+  ["sol","Sól",1000,"g",1.49,"base",true],
+  ["pieprz","Pieprz czarny mielony",20,"g",1.99,"base",true],
+  ["cukier","Cukier",1000,"g",3.79,"base",true],
+  ["kurczakprz","Przyprawa do kurczaka",30,"g",1.79,"base",true],
+  ["paprykam","Papryka słodka mielona",20,"g",1.79,"base",true],
+  ["oregano","Oregano",10,"g",1.99,"base",true],
+  ["curry","Curry",20,"g",1.99,"base",true],
 ];
 const DEPTS = [["veg","Warzywa i owoce"],["bread","Pieczywo"],["dairy","Nabiał i lodówka"],["meat","Mięso i ryby"],["frozen","Mrożonki"],["dry","Makarony, kasze, sypkie"],["jar","Puszki i słoiki"],["base","Podstawy"]];
 const P = {};
@@ -361,48 +387,48 @@ PRODUCTS.forEach(([id,name,qty,unit,price,dept,pantry]) => P[id] = {id,name,qty,
 const R = (n,t,d,tags,min,i) => ({n,t,d,tags,min,i});
 const RECIPES = [
   R("Owsianka z bananem i masłem orzechowym","S","v",["slodkie","szybkie","fit"],10,{platki:60,mleko:200,banan:120,orzech:15}),
-  R("Jajecznica na maśle z pomidorem","SK","v",["polska","szybkie"],10,{jaja:2.5,maslo:10,chleb:100,pomidory:100}),
+  R("Jajecznica na maśle z pomidorem","SK","v",["polska","szybkie"],10,{jaja:2.5,maslo:10,chleb:100,pomidory:100,sol:1,pieprz:0.2}),
   R("Kanapki z szynką, serem i ogórkiem","SK","m",["polska","szybkie"],5,{chleb:110,maslo:10,szynka:40,ser:30,ogorek:0.25}),
-  R("Twarożek z ogórkiem na chlebie","SK","v",["polska","szybkie","fit"],10,{twarog:100,jogurt:40,ogorek:0.25,chleb:100}),
+  R("Twarożek z ogórkiem na chlebie","SK","v",["polska","szybkie","fit"],10,{twarog:100,jogurt:40,ogorek:0.25,chleb:100,sol:1,pieprz:0.2}),
   R("Jogurt grecki z jabłkiem i płatkami","S","v",["slodkie","szybkie","fit"],5,{grecki:170,jablka:150,platki:30,dzem:15}),
-  R("Naleśniki z dżemem","S","v",["slodkie","polska"],25,{maka:60,mleko:150,jaja:0.5,dzem:40,olej:10}),
-  R("Tost z awokado i jajkiem","S","v",["srodziemno","fit","szybkie"],10,{tost:80,awokado:0.5,jaja:1,koktajl:50}),
-  R("Szakszuka z pieczywem","SK","v",["srodziemno"],25,{jaja:2,krojone:200,papryka:70,cebula:50,chleb:80,oliwa:10}),
-  R("Serek wiejski z pomidorem i chlebem","SK","v",["polska","szybkie","fit"],5,{wiejski:200,pomidory:100,chleb:80}),
+  R("Naleśniki z dżemem","S","v",["slodkie","polska"],25,{maka:60,mleko:150,jaja:0.5,dzem:40,olej:10,cukier:5,sol:0.5}),
+  R("Tost z awokado i jajkiem","S","v",["srodziemno","fit","szybkie"],10,{tost:80,awokado:0.5,jaja:1,koktajl:50,sol:1,pieprz:0.2}),
+  R("Szakszuka z pieczywem","SK","v",["srodziemno"],25,{jaja:2,krojone:200,papryka:70,cebula:50,chleb:80,oliwa:10,sol:1,pieprz:0.2,paprykam:1}),
+  R("Serek wiejski z pomidorem i chlebem","SK","v",["polska","szybkie","fit"],5,{wiejski:200,pomidory:100,chleb:80,sol:0.5,pieprz:0.2}),
   R("Kanapki z hummusem i papryką","SK","v",["srodziemno","szybkie","fit"],5,{chleb:100,hummus:50,papryka:60,ogorek:0.2}),
   R("Placki owsiane z bananem","S","v",["slodkie","fit"],20,{platki:50,banan:100,jaja:1,jogurt:60,olej:5}),
   R("Tosty z serem i szynką","KS","m",["szybkie","fastfood"],10,{tost:100,ser:40,szynka:30,maslo:5}),
 
-  R("Spaghetti bolognese","O","m",["wloska"],35,{spaghetti:100,mielone:125,passata:170,cebula:40,czosnek:0.1,marchew:40,olej:10}),
-  R("Schabowy z ziemniakami i surówką z kapusty","O","m",["polska"],45,{schab:150,jaja:0.3,maka:15,bulkatarta:25,ziemniaki:250,kapusta:0.08,marchew:30,olej:20}),
-  R("Kurczak curry z mleczkiem kokosowym i ryżem","O","m",["azjatycka"],30,{piers:130,kokos:100,ryz:80,cebula:40,papryka:60,czosnek:0.1,olej:10}),
+  R("Spaghetti bolognese","O","m",["wloska"],35,{spaghetti:100,mielone:125,passata:170,cebula:40,czosnek:0.1,marchew:40,olej:10,sol:2,pieprz:0.3,oregano:0.5,cukier:2}),
+  R("Schabowy z ziemniakami i surówką z kapusty","O","m",["polska"],45,{schab:150,jaja:0.3,maka:15,bulkatarta:25,ziemniaki:250,kapusta:0.08,marchew:30,olej:20,sol:2,pieprz:0.3,cukier:2}),
+  R("Kurczak curry z mleczkiem kokosowym i ryżem","O","m",["azjatycka"],30,{piers:130,kokos:100,ryz:80,cebula:40,papryka:60,czosnek:0.1,olej:10,sol:1.5,curry:3}),
   R("Pierogi ruskie z cebulką i śmietaną","O","v",["polska","szybkie"],15,{pierogi:300,cebula:50,maslo:10,smietana:40}),
-  R("Zupa pomidorowa z makaronem","O","v",["polska"],30,{bulion:0.5,passata:200,marchew:60,penne:50,smietana:30,chleb:40}),
-  R("Leczo z kiełbasą i ryżem","O","m",["polska"],35,{kielbasa:100,cukinia:0.3,papryka:120,cebula:50,krojone:130,ryz:60,olej:10}),
-  R("Chili con carne z ryżem","O","m",["meksykanska"],40,{mielone:120,fasola:130,kukurydza:70,krojone:130,cebula:40,czosnek:0.1,ryz:70,olej:10}),
-  R("Tortille z kurczakiem i warzywami","OK","m",["meksykanska","szybkie"],20,{tortilla:2,piers:110,papryka:60,salata:0.15,jogurt:40,kukurydza:50,olej:5}),
-  R("Łosoś z ziemniakami i brokułem","O","r",["fit"],30,{losos:125,ziemniaki:250,brokul:0.4,maslo:10,cytryna:0.25}),
-  R("Mintaj w panierce z surówką z marchwi","O","r",["polska"],35,{mintaj:150,maka:15,jaja:0.3,bulkatarta:20,ziemniaki:250,marchew:100,jablka:50,olej:20}),
-  R("Penne z pesto, pomidorkami i mozzarellą","O","v",["wloska","szybkie"],15,{penne:100,pesto:40,koktajl:80,mozza:60}),
-  R("Dal z czerwonej soczewicy z ryżem","O","v",["azjatycka","fit"],30,{soczewica:80,kokos:80,krojone:100,cebula:40,czosnek:0.1,ryz:60,olej:10}),
+  R("Zupa pomidorowa z makaronem","O","v",["polska"],30,{bulion:0.5,passata:200,marchew:60,penne:50,smietana:30,chleb:40,sol:1.5,pieprz:0.2,cukier:2}),
+  R("Leczo z kiełbasą i ryżem","O","m",["polska"],35,{kielbasa:100,cukinia:0.3,papryka:120,cebula:50,krojone:130,ryz:60,olej:10,sol:1.5,pieprz:0.3,paprykam:1.5}),
+  R("Chili con carne z ryżem","O","m",["meksykanska"],40,{mielone:120,fasola:130,kukurydza:70,krojone:130,cebula:40,czosnek:0.1,ryz:70,olej:10,sol:1.5,pieprz:0.3,paprykam:2}),
+  R("Tortille z kurczakiem i warzywami","OK","m",["meksykanska","szybkie"],20,{tortilla:2,piers:110,papryka:60,salata:0.15,jogurt:40,kukurydza:50,olej:5,sol:1,kurczakprz:3}),
+  R("Łosoś z ziemniakami i brokułem","O","r",["fit"],30,{losos:125,ziemniaki:250,brokul:0.4,maslo:10,cytryna:0.25,sol:2,pieprz:0.3}),
+  R("Mintaj w panierce z surówką z marchwi","O","r",["polska"],35,{mintaj:150,maka:15,jaja:0.3,bulkatarta:20,ziemniaki:250,marchew:100,jablka:50,olej:20,sol:2,pieprz:0.3,cukier:2}),
+  R("Penne z pesto, pomidorkami i mozzarellą","O","v",["wloska","szybkie"],15,{penne:100,pesto:40,koktajl:80,mozza:60,sol:2}),
+  R("Dal z czerwonej soczewicy z ryżem","O","v",["azjatycka","fit"],30,{soczewica:80,kokos:80,krojone:100,cebula:40,czosnek:0.1,ryz:60,olej:10,sol:1.5,curry:3}),
   R("Makaron stir-fry z kurczakiem","O","m",["azjatycka","szybkie"],20,{noodle:80,piers:110,warzywamix:150,sojowy:20,czosnek:0.1,olej:10}),
-  R("Kasza gryczana z sosem pieczarkowym","O","v",["polska"],30,{kasza:80,pieczarki:150,cebula:50,smietana:50,olej:10}),
-  R("Pieczone udka z ziemniakami i mizerią","O","m",["polska"],60,{udka:300,ziemniaki:250,ogorek:0.4,smietana:40,olej:10}),
-  R("Kuskus z ciecierzycą, cukinią i fetą","OK","v",["srodziemno","fit","szybkie"],20,{kuskus:80,ciecierzyca:120,cukinia:0.3,papryka:60,feta:40,oliwa:10}),
-  R("Spaghetti z tuńczykiem i pomidorami","O","r",["wloska","szybkie"],20,{spaghetti:100,tunczyk:85,krojone:130,czosnek:0.1,oliwa:10}),
-  R("Placki ziemniaczane ze śmietaną","O","v",["polska"],40,{ziemniaki:300,cebula:30,jaja:0.5,maka:20,olej:25,smietana:50}),
+  R("Kasza gryczana z sosem pieczarkowym","O","v",["polska"],30,{kasza:80,pieczarki:150,cebula:50,smietana:50,olej:10,sol:1.5,pieprz:0.3}),
+  R("Pieczone udka z ziemniakami i mizerią","O","m",["polska"],60,{udka:300,ziemniaki:250,ogorek:0.4,smietana:40,olej:10,sol:2,pieprz:0.2,kurczakprz:4}),
+  R("Kuskus z ciecierzycą, cukinią i fetą","OK","v",["srodziemno","fit","szybkie"],20,{kuskus:80,ciecierzyca:120,cukinia:0.3,papryka:60,feta:40,oliwa:10,sol:1,pieprz:0.2}),
+  R("Spaghetti z tuńczykiem i pomidorami","O","r",["wloska","szybkie"],20,{spaghetti:100,tunczyk:85,krojone:130,czosnek:0.1,oliwa:10,sol:2,pieprz:0.3,oregano:0.3}),
+  R("Placki ziemniaczane ze śmietaną","O","v",["polska"],40,{ziemniaki:300,cebula:30,jaja:0.5,maka:20,olej:25,smietana:50,sol:1.5,pieprz:0.2}),
   R("Tofu z ryżem, brokułem i sosem sojowym","O","v",["azjatycka","fit"],25,{tofu:90,ryz:80,brokul:0.3,sojowy:20,czosnek:0.1,olej:10}),
-  R("Kurczak z ryżem i warzywami","O","m",["fit","szybkie"],25,{piers:140,ryz:70,warzywamix:150,oliwa:10}),
-  R("Domowe burgery z frytkami","O","m",["fastfood"],30,{bulka:1,mielone:125,ser:20,salata:0.1,pomidory:60,frytki:150,majonez:10}),
-  R("Pizza z szynką i pieczarkami","O","m",["wloska","fastfood"],45,{maka:100,passata:60,mozza:60,pieczarki:50,szynka:30,oliwa:10}),
-  R("Pizza margherita","O","v",["wloska","fastfood"],45,{maka:100,passata:60,mozza:90,oliwa:10}),
-  R("Krem z dyni z grzankami","O","v",["polska","fit","sezon"],40,{dynia:0.25,cebula:30,marchew:50,bulion:0.5,smietana:30,chleb:50,maslo:5}),
+  R("Kurczak z ryżem i warzywami","O","m",["fit","szybkie"],25,{piers:140,ryz:70,warzywamix:150,oliwa:10,sol:1.5,kurczakprz:3}),
+  R("Domowe burgery z frytkami","O","m",["fastfood"],30,{bulka:1,mielone:125,ser:20,salata:0.1,pomidory:60,frytki:150,majonez:10,sol:1.5,pieprz:0.3}),
+  R("Pizza z szynką i pieczarkami","O","m",["wloska","fastfood"],45,{maka:100,passata:60,mozza:60,pieczarki:50,szynka:30,oliwa:10,sol:1,cukier:2,oregano:0.5}),
+  R("Pizza margherita","O","v",["wloska","fastfood"],45,{maka:100,passata:60,mozza:90,oliwa:10,sol:1,cukier:2,oregano:0.5}),
+  R("Krem z dyni z grzankami","O","v",["polska","fit","sezon"],40,{dynia:0.25,cebula:30,marchew:50,bulion:0.5,smietana:30,chleb:50,maslo:5,sol:1.5,pieprz:0.2}),
 
-  R("Sałatka grecka z pieczywem","K","v",["srodziemno","fit","szybkie"],10,{pomidory:120,ogorek:0.3,papryka:60,feta:50,cebula:20,oliwa:10,chleb:60}),
-  R("Sałatka z kurczakiem i sosem jogurtowym","K","m",["fit"],20,{salata:0.25,piers:100,koktajl:60,ogorek:0.2,jogurt:40,chleb:40,oliwa:5}),
-  R("Kanapki z jajkiem i majonezem","KS","v",["polska","szybkie"],15,{jaja:1.5,majonez:15,chleb:100,pomidory:60}),
-  R("Quesadilla z serem i fasolą","K","v",["meksykanska","szybkie"],15,{tortilla:1.5,ser:40,fasola:80,kukurydza:40}),
-  R("Sałatka z tuńczykiem i kukurydzą","K","r",["szybkie","fit"],10,{tunczyk:85,kukurydza:50,jaja:1,majonez:15,chleb:60}),
+  R("Sałatka grecka z pieczywem","K","v",["srodziemno","fit","szybkie"],10,{pomidory:120,ogorek:0.3,papryka:60,feta:50,cebula:20,oliwa:10,chleb:60,sol:0.5,oregano:0.3}),
+  R("Sałatka z kurczakiem i sosem jogurtowym","K","m",["fit"],20,{salata:0.25,piers:100,koktajl:60,ogorek:0.2,jogurt:40,chleb:40,oliwa:5,sol:1,pieprz:0.2,kurczakprz:2}),
+  R("Kanapki z jajkiem i majonezem","KS","v",["polska","szybkie"],15,{jaja:1.5,majonez:15,chleb:100,pomidory:60,sol:0.5,pieprz:0.2}),
+  R("Quesadilla z serem i fasolą","K","v",["meksykanska","szybkie"],15,{tortilla:1.5,ser:40,fasola:80,kukurydza:40,paprykam:0.5}),
+  R("Sałatka z tuńczykiem i kukurydzą","K","r",["szybkie","fit"],10,{tunczyk:85,kukurydza:50,jaja:1,majonez:15,chleb:60,pieprz:0.2}),
   R("Tosty z mozzarellą i pomidorem","K","v",["wloska","szybkie"],10,{tost:100,mozza:50,pomidory:80,pesto:10}),
 ];
 const PREFS = [["polska","Polskie domowe"],["wloska","Włoskie"],["azjatycka","Azjatyckie"],["meksykanska","Meksykańskie"],["srodziemno","Śródziemnomorskie"],["fastfood","Domowy fast food"],["wege","Więcej wege"],["fit","Lekko i fit"],["szybkie","Szybkie, do 20 min"],["slodkie","Słodkie śniadania"],["sezon","Sezonowe (dynia)"]];
@@ -414,6 +440,7 @@ function load(k, d) { try { const v = localStorage.getItem(k); return v ? JSON.p
 function save(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
 let priceOverrides = load("pl-prices", {});
 let checked = load("pl-checked", {});
+let missing = load("pl-missing", {});
 
 const $ = s => document.querySelector(s);
 const zl = v => v.toLocaleString("pl-PL", {minimumFractionDigits: 2, maximumFractionDigits: 2}) + " zł";
@@ -429,6 +456,13 @@ function mulberry32(a) { return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = 
 
 // ---------- Formularz
 $("#prefs").innerHTML = PREFS.map(([k, l]) => `<label class="chip"><input type="checkbox" id="pref-${k}" value="${k}"><span>${l}</span></label>`).join("");
+$("#pantry").innerHTML = PRODUCTS.filter(p => p[6]).map(([id, name]) =>
+  `<div class="row item"><input class="check" type="checkbox" id="have-${id}" data-have="${id}"${missing[id] ? "" : " checked"}><label for="have-${id}"><span>${name}</span></label></div>`).join("");
+$("#pantry").addEventListener("change", e => {
+  const id = e.target.dataset.have; if (!id) return;
+  if (e.target.checked) delete missing[id]; else missing[id] = true;
+  save("pl-missing", missing);
+});
 $("#budget").addEventListener("input", e => { $("#budgetRange").value = e.target.value; });
 $("#budgetRange").addEventListener("input", e => { $("#budget").value = e.target.value; });
 document.querySelectorAll("[data-step]").forEach(b => b.addEventListener("click", () => {
@@ -446,7 +480,7 @@ function readForm() {
     meals: meals.length ? meals : ["O"],
     diet: document.querySelector("input[name=diet]:checked").value,
     prefs: PREFS.map(p => p[0]).filter(k => $("#pref-" + k).checked),
-    pantry: $("#pantry").checked,
+    have: PRODUCTS.filter(p => p[6] && $("#have-" + p[0]).checked).map(p => p[0]),
     batch: $("#batch").checked,
   };
 }
@@ -454,6 +488,7 @@ function readForm() {
 // ---------- Logika planu
 let cfg, groups = [], seed = 1;
 
+const atHome = id => cfg.have.includes(id);
 function dietOk(r) { return cfg.diet === "all" || (cfg.diet === "pesc" ? r.d !== "m" : r.d === "v"); }
 function eligible(meal) { return RECIPES.map((r, i) => i).filter(i => RECIPES[i].t.includes(meal) && dietOk(RECIPES[i])); }
 function matches(r) { return cfg.prefs.filter(p => p === "wege" ? r.d === "v" : r.tags.includes(p)).length; }
@@ -468,7 +503,7 @@ function basket(gs) {
   let total = 0;
   for (const [id, n] of Object.entries(need)) {
     const p = P[id];
-    if (cfg.pantry && p.pantry) continue;
+    if (atHome(id)) continue;
     const packs = Math.max(1, Math.ceil(n / p.qty - 1e-6));
     const cost = packs * price(id);
     total += cost;
@@ -477,7 +512,7 @@ function basket(gs) {
   return {items, total};
 }
 const totalOf = gs => basket(gs).total;
-const portionCost = r => Object.entries(RECIPES[r].i).reduce((s, [id, a]) => (cfg.pantry && P[id].pantry) ? s : s + a * price(id) / P[id].qty, 0);
+const portionCost = r => Object.entries(RECIPES[r].i).reduce((s, [id, a]) => atHome(id) ? s : s + a * price(id) / P[id].qty, 0);
 
 function makeGroups() {
   const gs = [];
@@ -490,7 +525,9 @@ function makeGroups() {
 
 function choose(gs, rng) {
   const used = {};
+  gs.filter(g => g.locked).forEach(g => { used[g.r] = (used[g.r] || 0) + 1; });
   gs.forEach(g => {
+    if (g.locked) return;
     let best = -1, bestV = -Infinity;
     for (const c of eligible(g.meal)) {
       const r = RECIPES[c], mt = matches(r);
@@ -508,6 +545,7 @@ function fitBudget(gs) {
   for (let iter = 0; iter < 80 && cost > cfg.budget; iter++) {
     let best = null, bestScore = 0;
     gs.forEach((g, gi) => {
+      if (g.locked) return;
       const cur = g.r;
       for (const c of eligible(g.meal)) {
         if (c === cur) continue;
@@ -539,8 +577,22 @@ function generate(newSeed) {
   render();
 }
 
+// Losuje od nowa wszystkie niezablokowane dania, z tymi samymi ustawieniami.
+function reroll() {
+  if (groups.every(g => g.locked)) { showToast("Wszystkie dania są zablokowane"); return; }
+  const prev = snapshot();
+  seed = Math.floor(Math.random() * 1e9);
+  choose(groups, mulberry32(seed));
+  fitBudget(groups);
+  checked = {}; save("pl-checked", checked);
+  render();
+  showToast("Wylosowano nowy plan", prev);
+}
+
 function swapGroup(gi) {
   const g = groups[gi], cur = g.r, before = totalOf(groups);
+  if (g.locked) return;
+  const prev = snapshot();
   const limit = Math.max(cfg.budget, before);
   const opts = [];
   for (const c of eligible(g.meal)) {
@@ -554,7 +606,26 @@ function swapGroup(gi) {
   const pool = (fit.length ? fit : opts.sort((a, b) => a.nc - b.nc).slice(0, 3)).sort((a, b) => b.v - a.v);
   if (pool.length) g.r = pool[0].c;
   render();
+  if (g.r !== cur) showToast(`Zamieniono na: ${RECIPES[g.r].n}`, prev);
 }
+
+// ---------- Cofanie
+let undoState = null, toastTimer;
+const snapshot = () => ({groups: groups.map(g => ({...g, days: [...g.days]})), checked: {...checked}});
+function showToast(msg, prev) {
+  undoState = prev || null;
+  $("#toastMsg").textContent = msg;
+  $("#undo").hidden = !prev;
+  $("#toast").classList.add("show");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(hideToast, prev ? 6000 : 3000);
+}
+function hideToast() { $("#toast").classList.remove("show"); undoState = null; }
+$("#undo").addEventListener("click", () => {
+  if (!undoState) return;
+  groups = undoState.groups; checked = undoState.checked; save("pl-checked", checked);
+  hideToast(); render();
+});
 
 // ---------- Widok
 const WD = ["niedziela","poniedziałek","wtorek","środa","czwartek","piątek","sobota"];
@@ -579,7 +650,6 @@ function summaryHTML(total, items) {
 
 function render() {
   const {items, total} = basket(groups);
-  $("#summary").innerHTML = summaryHTML(total, items);
   renderPlan(total, items);
   renderList(items, total);
   renderPrices();
@@ -588,7 +658,8 @@ function render() {
 function ingList(r, portions) {
   return Object.entries(RECIPES[r].i).map(([id, a]) => {
     const p = P[id];
-    return `<li>${p.name}: ${amount(a * portions, p.unit)}${cfg.pantry && p.pantry ? " (z domu)" : ""}</li>`;
+    const n = a * portions, qty = p.pantry && p.unit === "g" && n < 5 ? "do smaku" : amount(n, p.unit);
+    return `<li>${p.name}: ${qty}${atHome(id) ? " (z domu)" : ""}</li>`;
   }).join("");
 }
 
@@ -604,10 +675,14 @@ function renderPlan(total, items) {
       const second = g.days[0] !== d;
       const portions = second ? cfg.persons : cfg.persons * g.days.length;
       const prefs = r.tags.filter(t => cfg.prefs.includes(t)).map(t => TAG_NAMES[t]).join(", ");
-      html += `<div class="row meal"><div class="txt"><span class="kind">${MEAL_NAMES[m]}</span>
+      const lock = second ? `<span class="lock" aria-hidden="true"></span>`
+        : `<button type="button" class="lock" data-lock="${gi}" aria-pressed="${!!g.locked}" aria-label="${g.locked ? "Odblokuj" : "Zablokuj"}: ${r.n}" title="${g.locked ? "Odblokuj" : "Zablokuj"}">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="${g.locked ? "M8 11V7a4 4 0 0 1 8 0v4" : "M8 11V7a4 4 0 0 1 7.5-1.9"}"/></svg></button>`;
+      const actions = second || g.locked ? "" : ` · <button type="button" data-swap="${gi}" aria-label="Zamień: ${r.n}">Zamień</button>`;
+      html += `<div class="row meal${g.locked ? " locked" : ""}"><div class="txt"><span class="kind">${MEAL_NAMES[m]}</span>
         <details><summary>${r.n}</summary><ul class="ing">${second ? "<li>Odgrzewasz porcję z wczoraj.</li>" : ingList(g.r, portions)}</ul></details>
-        <span class="meta">${second ? "z wczoraj" : r.min + " min"}${!second && g.days.length > 1 ? ` · gotujesz ${portions} porcji` : ""}${prefs ? ` · <span class="pref">${prefs}</span>` : ""}${second ? "" : ` · <button type="button" data-swap="${gi}" aria-label="Zamień: ${r.n}">Zamień</button>`}</span>
-        </div><span class="tag"><b>${zl(portionCost(g.r)).replace(" zł", "")}</b><small>zł / porcja</small></span></div>`;
+        <span class="meta">${second ? "z wczoraj" : r.min + " min"}${!second && g.days.length > 1 ? ` · gotujesz ${portions} porcji` : ""}${prefs ? ` · <span class="pref">${prefs}</span>` : ""}${actions}</span>
+        </div><div class="side">${lock}<span class="tag"><b>${zl(portionCost(g.r)).replace(" zł", "")}</b><small>zł / porcja</small></span></div></div>`;
     });
     html += `</div></div>`;
   }
@@ -659,10 +734,10 @@ const TABS = {form: "Planuj", plan: "Jadłospis", list: "Lista zakupów", prices
 function showTab(t) {
   Object.keys(TABS).forEach(x => { $("#tab-" + x).setAttribute("aria-selected", x === t); $("#view-" + x).hidden = x !== t; });
   $("#title").textContent = TABS[t];
+  hideToast();
   window.scrollTo(0, 0);
 }
 Object.keys(TABS).forEach(t => $("#tab-" + t).addEventListener("click", () => showTab(t)));
-document.querySelectorAll("[data-go]").forEach(b => b.addEventListener("click", () => showTab(b.dataset.go)));
 
 // ---------- Zdarzenia
 $("#view-form").addEventListener("submit", e => {
@@ -672,7 +747,9 @@ $("#view-form").addEventListener("submit", e => {
   showTab("plan");
 });
 $("#view-plan").addEventListener("click", e => {
-  if (e.target.id === "reroll") { generate(true); return; }
+  if (e.target.id === "reroll") { reroll(); return; }
+  const l = e.target.closest("[data-lock]");
+  if (l) { const g = groups[+l.dataset.lock]; g.locked = !g.locked; render(); return; }
   const b = e.target.closest("[data-swap]"); if (b) swapGroup(+b.dataset.swap);
 });
 $("#view-list").addEventListener("change", e => {
