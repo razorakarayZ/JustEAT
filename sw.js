@@ -1,5 +1,5 @@
 // Podbij wersję przy każdej zmianie plików, żeby telefon pobrał nową wersję aplikacji.
-const CACHE = "pelna-lodowka-v1";
+const CACHE = "pelna-lodowka-v2";
 const ASSETS = ["./", "./index.html", "./manifest.webmanifest", "./icons/icon-180.png", "./icons/icon-192.png", "./icons/icon-512.png"];
 
 self.addEventListener("install", e => {
