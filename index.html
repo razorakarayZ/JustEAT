@@ -2,7 +2,7 @@
 <html lang="pl">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>Pełna Lodówka</title>
 <meta name="description" content="Jadłospis i lista zakupów do Lidla, ułożone pod Twój budżet.">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -81,7 +81,7 @@ img { max-width: 100%; }
   --coral-soft: #3a1e18;
   --bar: rgba(10, 12, 11, 0.82);
 }
-* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
 body {
   background: var(--bg);
   isolation: isolate;
@@ -176,6 +176,9 @@ input[type="range"] { width: 100%; accent-color: var(--accent); margin: 0; }
 .btn { display: block; width: 100%; border: 0; border-radius: 14px; padding: 15px; background: var(--accent); color: var(--on-accent); font-size: 17px; font-weight: 600; cursor: pointer; }
 .btn:active { opacity: .85; }
 .btn.plain { background: var(--card); color: var(--accent); }
+.btn.yellow { background: var(--tag); color: var(--tag-ink); }
+.btn:disabled { opacity: .4; cursor: default; }
+.lock:disabled { cursor: default; }
 .btns { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 
 .sum { padding: 16px; display: grid; gap: 12px; }
@@ -202,6 +205,13 @@ input[type="range"] { width: 100%; accent-color: var(--accent); margin: 0; }
 .dayhd span { font-size: 14px; color: var(--muted); font-variant-numeric: tabular-nums; }
 .meal { align-items: flex-start; padding-block: 11px; }
 .meal .txt { flex: 1; min-width: 0; display: grid; gap: 2px; }
+.star { width: 32px; height: 32px; margin: 0 -6px 0 -8px; flex: none; display: grid; place-items: center; border: 0; border-radius: 50%; background: none; padding: 0; color: var(--muted); cursor: pointer; }
+.meal .star { margin-top: 6px; }
+.star svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linejoin: round; }
+.star.on { color: var(--tag); }
+.star.on svg { fill: var(--tag); }
+.fav { align-items: center; }
+.fav label { flex: 1; }
 .meal .kind { font-size: 12px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; }
 .meal summary { cursor: pointer; font-weight: 600; list-style: none; }
 .meal summary::-webkit-details-marker { display: none; }
@@ -253,11 +263,51 @@ input[type="range"] { width: 100%; accent-color: var(--accent); margin: 0; }
 .toast button { border: 0; border-radius: 9px; padding: 7px 14px; background: var(--accent); color: var(--on-accent); font-weight: 600; cursor: pointer; flex: none; }
 .toast button[hidden] { display: none; }
 .foot { font-size: 13px; color: var(--muted); padding: 0 16px; margin: 0; }
+.back { display: inline-flex; align-items: center; gap: 1px; border: 0; background: none; padding: 0; margin: 0 0 2px -6px; color: var(--accent); font-size: 17px; cursor: pointer; }
+.back[hidden] { display: none; }
+.back svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+body.full .tabbar, body.full .gear, body.full .top > div > small { display: none; }
+body.full { padding-bottom: calc(24px + env(safe-area-inset-bottom, 0px)); }
+.mlink { width: 100%; border: 0; background: none; text-align: left; cursor: pointer; color: inherit; }
+.mlink small { display: block; font-size: 13px; color: var(--muted); }
+.mlink svg, .hx summary svg { width: 18px; height: 18px; flex: none; fill: none; stroke: var(--muted); stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; transition: transform .2s; }
+.hhead small { display: block; font-size: 13px; color: var(--muted); }
+.hhead b.sum { font: 700 20px var(--f-num); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.hx summary { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 46px; padding: 8px 16px; border-top: 0.5px solid var(--sep); margin-left: 16px; padding-left: 0; cursor: pointer; list-style: none; }
+.hx summary::-webkit-details-marker { display: none; }
+.hx[open] summary svg { transform: rotate(90deg); }
+.hx .hxb { padding: 0 16px 12px 0; margin-left: 16px; font-size: 14px; color: var(--muted); }
+.hxb b { display: block; margin-top: 10px; color: var(--ink); font-weight: 600; }
+.hxb b:first-child { margin-top: 0; }
+.hxb ul { margin: 2px 0 0; padding: 0; list-style: none; }
+.hxb li { display: flex; justify-content: space-between; gap: 12px; padding: 2px 0; }
+.hxb li span:last-child { font-variant-numeric: tabular-nums; white-space: nowrap; }
+.hdel { border: 0; background: none; padding: 0; color: var(--accent); font-size: 15px; font-weight: 600; cursor: pointer; }
+.empty { padding: 20px 16px; color: var(--muted); font-size: 15px; text-align: center; }
+.cheer { position: fixed; inset: 0; z-index: 40; display: grid; place-items: center; pointer-events: none; visibility: hidden; overflow: hidden; }
+.cheer::before { content: ""; position: absolute; inset: 0; background: var(--bg); opacity: .9; }
+.cheer.go { visibility: visible; animation: cheerFade 1.9s ease forwards; }
+.cheer-in { position: relative; display: grid; justify-items: center; gap: 18px; }
+.cheer b { font: 800 36px/1 var(--f-ui); letter-spacing: 0.02em; background: var(--tag); color: var(--tag-ink); padding: 10px 18px 8px; border-radius: 8px; transform: rotate(-3deg); }
+.cheer svg { width: 132px; height: 132px; fill: none; stroke: var(--accent); stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+.cheer svg .goods { fill: var(--tag); stroke: none; }
+.cheer.go svg { animation: cartRide 1.9s cubic-bezier(.3, .7, .3, 1) forwards; }
+.cheer.go b { animation: tagPop 1.9s ease forwards; }
+@keyframes cheerFade { 0% { opacity: 0; } 10%, 82% { opacity: 1; } 100% { opacity: 0; } }
+@keyframes cartRide {
+  0% { transform: translateX(-70vw) rotate(-6deg); }
+  32% { transform: translateX(0) rotate(5deg); }
+  40% { transform: translateX(0) rotate(-3deg); }
+  48%, 74% { transform: translateX(0) rotate(0); }
+  100% { transform: translateX(70vw) rotate(-6deg); }
+}
+@keyframes tagPop { 0%, 28% { transform: scale(0) rotate(-3deg); } 40% { transform: scale(1.15) rotate(-3deg); } 50%, 100% { transform: scale(1) rotate(-3deg); } }
+@media (prefers-reduced-motion: reduce) { .cheer.go svg, .cheer.go b { animation: none; } }
 @media (prefers-reduced-motion: reduce) { .meter i, .sw, .sw::before, .toast, .toast.show, .theme i, .menu, .menu.open { transition: none; } .xchip.new { animation: none; } }
 </style>
 
 <div class="wrap">
-  <header class="top"><div><small>Pełna Lodówka</small><h1 id="title">Planuj</h1></div>
+  <header class="top"><div><button type="button" class="back" id="back" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>Wróć</button><small>Pełna Lodówka</small><h1 id="title">Planuj</h1></div>
     <button type="button" class="gear" id="gear" aria-label="Ustawienia" aria-expanded="false" aria-controls="menu"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button>
     <div class="menu" id="menu" role="dialog" aria-label="Ustawienia">
       <div class="hd">Ustawienia</div>
@@ -266,6 +316,7 @@ input[type="range"] { width: 100%; accent-color: var(--accent); margin: 0; }
           <svg class="sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
           <svg class="moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20.5 14.5A8.5 8.5 0 1 1 9.5 3.5a7 7 0 0 0 11 11z"/></svg>
         </button></div>
+      <button type="button" class="row mlink" id="openPrices"><span>Ceny<small>Popraw ceny produktów</small></span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg></button>
     </div>
   </header>
 
@@ -312,6 +363,12 @@ input[type="range"] { width: 100%; accent-color: var(--accent); margin: 0; }
     </div>
 
     <div class="sec">
+      <div class="hd">Ulubione dania</div>
+      <div class="card" id="favs"></div>
+      <div class="ft" id="favsNote">Zaznaczone ulubione trafią do planu w pierwszej kolejności. Gwiazdka usuwa danie z ulubionych.</div>
+    </div>
+
+    <div class="sec">
       <div class="hd">Co masz w domu?</div>
       <div class="card" id="pantry"></div>
       <div class="ft">Odznacz to, czego brakuje. Trafi na listę zakupów, jeśli przepis tego wymaga.</div>
@@ -324,8 +381,6 @@ input[type="range"] { width: 100%; accent-color: var(--accent); margin: 0; }
       </div>
     </div>
 
-    <button class="btn" type="submit">Ułóż plan i listę zakupów</button>
-
     <div class="sec">
       <div class="hd">Dodatkowe zakupy</div>
       <div class="card">
@@ -335,11 +390,19 @@ input[type="range"] { width: 100%; accent-color: var(--accent); margin: 0; }
       </div>
       <div class="ft">Wpisz i naciśnij Enter. Pozycje od razu trafiają na koniec listy zakupów, bez ceny.</div>
     </div>
+
+    <button class="btn" type="submit">Ułóż plan i listę zakupów</button>
   </form>
 
   <section class="view" id="view-plan" hidden></section>
   <section class="view" id="view-list" hidden></section>
+  <section class="view" id="view-history" hidden></section>
   <section class="view" id="view-prices" hidden></section></div>
+
+<div class="cheer" id="cheer" aria-hidden="true"><div class="cheer-in">
+  <b>NA ZAKUPY!</b>
+  <svg viewBox="0 0 24 24"><rect class="goods" x="8" y="4.2" width="3" height="4.6" rx=".6"/><rect class="goods" x="11.8" y="2.8" width="2.6" height="6" rx=".6"/><circle class="goods" cx="16.4" cy="7.2" r="1.7"/><path d="M3 4h2.2l2.3 11h10.8l2-8H6.3"/><circle cx="9" cy="19.5" r="1.4"/><circle cx="17" cy="19.5" r="1.4"/></svg>
+</div></div>
 
 <div class="toast" id="toast" role="status" aria-live="polite"><span id="toastMsg"></span><button type="button" id="undo">Cofnij</button></div>
 
@@ -347,7 +410,7 @@ input[type="range"] { width: 100%; accent-color: var(--accent); margin: 0; }
   <button type="button" role="tab" id="tab-form" aria-selected="true"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg>Planuj</button>
   <button type="button" role="tab" id="tab-plan" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15" rx="3"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg>Jadłospis</button>
   <button type="button" role="tab" id="tab-list" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 4h2.2l2.3 11h10.8l2-8H6.3"/><circle cx="9" cy="19.5" r="1.4"/><circle cx="17" cy="19.5" r="1.4"/></svg>Lista</button>
-  <button type="button" role="tab" id="tab-prices" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 12.5V4.5a1 1 0 0 1 1-1h8l8 8-9 9z"/><circle cx="8.5" cy="8.5" r="1.5"/></svg>Ceny</button>
+  <button type="button" role="tab" id="tab-history" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 12a8.5 8.5 0 1 0 2.5-6"/><path d="M3.5 4v4h4M12 7.5V12l3 2"/></svg>Historia</button>
 </div></nav>
 
 <script>
@@ -494,10 +557,13 @@ function save(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch 
 let priceOverrides = load("pl-prices", {});
 let checked = load("pl-checked", {});
 let missing = load("pl-missing", {});
+let favs = load("pl-favs", {}); // nazwa dania -> czy brać je do planu
 let extra = load("pl-extra", []);
 if (typeof extra === "string") extra = [...new Set(extra.split("\n").map(s => s.trim()).filter(Boolean))];
 
 const $ = s => document.querySelector(s);
+// Bez przybliżania: iOS ignoruje user-scalable=no, więc blokujemy gest szczypania ręcznie.
+["gesturestart", "gesturechange"].forEach(t => document.addEventListener(t, e => e.preventDefault(), {passive: false}));
 const zl = v => v.toLocaleString("pl-PL", {minimumFractionDigits: 2, maximumFractionDigits: 2}) + " zł";
 const num = (v, dec = 1) => v.toLocaleString("pl-PL", {maximumFractionDigits: dec});
 const price = id => (id in priceOverrides) ? priceOverrides[id] : P[id].price;
@@ -520,6 +586,36 @@ $("#pantry").addEventListener("change", e => {
   if (e.target.checked) delete missing[id]; else missing[id] = true;
   save("pl-missing", missing);
 });
+// Ulubione dania: gwiazdka w Jadłospisie, lista z wyborem w Planuj.
+const STAR = `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.2l2.7 5.5 6 .9-4.35 4.25 1 6L12 17l-5.4 2.85 1-6L3.3 9.6l6-.9z"/></svg>`;
+function renderFavs() {
+  const names = Object.keys(favs);
+  $("#favsNote").hidden = !names.length;
+  $("#favs").innerHTML = !names.length
+    ? `<div class="empty">Nie masz jeszcze ulubionych dań.<br>Dodasz je gwiazdką przy daniu w Jadłospisie.</div>`
+    : names.map((n, i) => {
+      const r = RECIPES.find(x => x.n === n), kinds = r ? r.t.split("").map(m => MEAL_NAMES[m]).join(", ") + ` · ${r.min} min` : "";
+      return `<div class="row item fav"><button type="button" class="star on" data-unfav="${esc(n)}" aria-label="Usuń z ulubionych: ${esc(n)}">${STAR}</button>
+        <label for="fav-${i}"><span>${esc(n)}</span><small>${kinds}</small></label>
+        <input class="check" type="checkbox" id="fav-${i}" data-want="${esc(n)}"${favs[n] ? " checked" : ""} aria-label="Weź do planu: ${esc(n)}"></div>`;
+    }).join("");
+}
+function toggleFav(n, on) {
+  if (on) favs[n] = true; else delete favs[n];
+  save("pl-favs", favs); renderFavs();
+  if (cfg) render();
+}
+$("#favs").addEventListener("change", e => {
+  const n = e.target.dataset.want; if (n === undefined) return;
+  favs[n] = e.target.checked; save("pl-favs", favs);
+});
+$("#favs").addEventListener("click", e => {
+  const b = e.target.closest("[data-unfav]"); if (!b) return;
+  const n = b.dataset.unfav, before = {...favs};
+  toggleFav(n, false);
+  showToast("Usunięto z ulubionych", () => { favs = before; save("pl-favs", favs); renderFavs(); render(); });
+});
+
 // Dodatkowe zakupy: wpis + Enter dodaje plakietkę, X ją usuwa.
 function renderExtra(added) {
   $("#extraChips").hidden = !extra.length;
@@ -560,6 +656,7 @@ function readForm() {
     prefs: PREFS.map(p => p[0]).filter(k => $("#pref-" + k).checked),
     have: PRODUCTS.filter(p => p[6] && $("#have-" + p[0]).checked).map(p => p[0]),
     batch: $("#batch").checked,
+    favs: RECIPES.map((r, i) => favs[r.n] ? i : -1).filter(i => i >= 0),
   };
 }
 
@@ -610,6 +707,7 @@ function choose(gs, rng) {
     for (const c of eligible(g.meal)) {
       const r = RECIPES[c], mt = matches(r);
       let v = 1 + 1.6 * mt + rng() * 1.2 - (used[c] || 0) * (g.meal === "S" ? 0.9 : 2.4);
+      if (cfg.favs.includes(c) && !used[c]) v += 3.5;
       if (cfg.prefs.length && !mt) v -= 0.6;
       if (v > bestV) { bestV = v; best = c; }
     }
@@ -618,12 +716,16 @@ function choose(gs, rng) {
 }
 
 // Zamienia najdroższe dania na tańsze, dopóki plan nie zmieści się w budżecie.
+// Najpierw nie rusza ulubionych; dopiero gdy to nie wystarczy, drugi przebieg może je wymienić.
 function fitBudget(gs) {
+  return fitPass(gs, true) > cfg.budget ? fitPass(gs, false) : totalOf(gs);
+}
+function fitPass(gs, keepFavs) {
   let cost = totalOf(gs);
   for (let iter = 0; iter < 80 && cost > cfg.budget; iter++) {
     let best = null, bestScore = 0;
     gs.forEach((g, gi) => {
-      if (g.locked) return;
+      if (g.locked || (keepFavs && cfg.favs.includes(g.r))) return;
       const cur = g.r;
       for (const c of eligible(g.meal)) {
         if (c === cur) continue;
@@ -632,7 +734,7 @@ function fitBudget(gs) {
         const delta = cost - nc;
         if (delta > 0.01) {
           const uses = gs.filter(x => x.r === c).length - 1;
-          const loss = Math.max(0, matches(RECIPES[cur]) - matches(RECIPES[c]));
+          const loss = Math.max(0, matches(RECIPES[cur]) - matches(RECIPES[c])) + (cfg.favs.includes(cur) && !cfg.favs.includes(c) ? 2 : 0);
           const s = delta / (1 + loss * 0.7 + uses * 0.6);
           if (s > bestScore) { bestScore = s; best = [gi, c, nc]; }
         }
@@ -649,6 +751,7 @@ function generate(newSeed) {
   cfg = readForm();
   if (newSeed) seed = Math.floor(Math.random() * 1e9);
   groups = makeGroups();
+  planSaved = false; preSaveLocks = null;
   choose(groups, mulberry32(seed));
   fitBudget(groups);
   checked = {}; save("pl-checked", checked);
@@ -664,7 +767,7 @@ function reroll() {
   fitBudget(groups);
   checked = {}; save("pl-checked", checked);
   render();
-  showToast("Wylosowano nowy plan", prev);
+  showToast("Wylosowano nowy plan", undoTo(prev));
 }
 
 function swapGroup(gi) {
@@ -684,25 +787,86 @@ function swapGroup(gi) {
   const pool = (fit.length ? fit : opts.sort((a, b) => a.nc - b.nc).slice(0, 3)).sort((a, b) => b.v - a.v);
   if (pool.length) g.r = pool[0].c;
   render();
-  if (g.r !== cur) showToast(`Zamieniono na: ${RECIPES[g.r].n}`, prev);
+  if (g.r !== cur) showToast(`Zamieniono na: ${RECIPES[g.r].n}`, undoTo(prev));
 }
 
 // ---------- Cofanie
 let undoState = null, toastTimer;
 const snapshot = () => ({groups: groups.map(g => ({...g, days: [...g.days]})), checked: {...checked}});
-function showToast(msg, prev) {
-  undoState = prev || null;
+const undoTo = prev => () => { groups = prev.groups; checked = prev.checked; save("pl-checked", checked); render(); };
+// undo: funkcja, która cofa akcję; bez niej toast jest tylko informacją.
+function showToast(msg, undo) {
+  undoState = undo || null;
   $("#toastMsg").textContent = msg;
-  $("#undo").hidden = !prev;
+  $("#undo").hidden = !undo;
   $("#toast").classList.add("show");
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(hideToast, prev ? 6000 : 3000);
+  toastTimer = setTimeout(hideToast, undo ? 6000 : 3000);
 }
 function hideToast() { $("#toast").classList.remove("show"); undoState = null; }
 $("#undo").addEventListener("click", () => {
-  if (!undoState) return;
-  groups = undoState.groups; checked = undoState.checked; save("pl-checked", checked);
-  hideToast(); render();
+  const undo = undoState; if (!undo) return;
+  hideToast(); undo();
+});
+
+// ---------- Historia zapisanych jadłospisów
+let hist = load("pl-history", []);
+const stamp = ts => { const t = new Date(ts); return `${WD[t.getDay()]}, ${t.getDate()}.${String(t.getMonth() + 1).padStart(2, "0")}.${t.getFullYear()}, ${t.getHours()}:${String(t.getMinutes()).padStart(2, "0")}`; };
+// Po zapisie jadłospis jest „zamrożony”: wszystko zablokowane, bez losowania, do czasu „Nowy jadłospis”.
+let planSaved = false, preSaveLocks = null, saveTimer;
+function unsave() {
+  if (!planSaved) return;
+  groups.forEach((g, i) => { g.locked = preSaveLocks ? preSaveLocks[i] : false; });
+  planSaved = false; preSaveLocks = null;
+  render();
+}
+function savePlan() {
+  if (planSaved) return;
+  const {items, total} = basket(groups), order = DEPTS.map(d => d[0]);
+  const entry = {
+    id: Date.now(), persons: cfg.persons, days: cfg.days, total,
+    plan: Array.from({length: cfg.days}, (_, d) => ({label: dayLabel(d), meals: cfg.meals.map(m => {
+      const g = groups.find(x => x.meal === m && x.days.includes(d));
+      return `${MEAL_NAMES[m]}: ${RECIPES[g.r].n}${g.days[0] !== d ? " (z wczoraj)" : ""}`;
+    })})),
+    list: items.slice().sort((a, b) => order.indexOf(a.p.dept) - order.indexOf(b.p.dept) || a.p.name.localeCompare(b.p.name, "pl")).map(it => [`${it.packs} × ${it.p.name}`, it.cost]),
+    extra: [...extra],
+  };
+  hist.unshift(entry); hist = hist.slice(0, 50);
+  save("pl-history", hist); renderHistory();
+  preSaveLocks = groups.map(g => !!g.locked);
+  groups.forEach(g => { g.locked = true; });
+  planSaved = true;
+  render(); cheer();
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(() => {
+    showTab("list");
+    showToast("Zapisano jadłospis w historii", () => { hist = hist.filter(h => h.id !== entry.id); save("pl-history", hist); renderHistory(); unsave(); });
+  }, 1900);
+}
+// Animacja „NA ZAKUPY!” z wózkiem po zapisaniu jadłospisu.
+let cheerTimer;
+function cheer() {
+  const c = $("#cheer");
+  c.classList.remove("go"); void c.offsetWidth; c.classList.add("go");
+  clearTimeout(cheerTimer); cheerTimer = setTimeout(() => c.classList.remove("go"), 1950);
+}
+function renderHistory() {
+  const chev = `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg>`;
+  $("#view-history").innerHTML = !hist.length
+    ? `<div class="card"><div class="empty">Nie masz jeszcze zapisanych jadłospisów.<br>Zapiszesz je przyciskiem „Zapisz jadłospis” na dole Jadłospisu.</div></div>`
+    : hist.map(h => `<div class="card">
+      <div class="row hhead"><div>${stamp(h.id)}<small>${h.persons} os. · ${h.days} dni · ${h.list.length + h.extra.length} produktów</small></div><b class="sum">${zl(h.total)}</b></div>
+      <details class="hx"><summary>Jadłospis${chev}</summary><div class="hxb">${h.plan.map((d, i) => `<b>Dzień ${i + 1} · ${d.label}</b><ul>${d.meals.map(m => `<li><span>${esc(m)}</span></li>`).join("")}</ul>`).join("")}</div></details>
+      <details class="hx"><summary>Lista zakupów${chev}</summary><div class="hxb"><ul>${h.list.map(([n, c]) => `<li><span>${esc(n)}</span><span>${zl(c)}</span></li>`).join("")}${h.extra.map(n => `<li><span>${esc(n)}</span><span>—</span></li>`).join("")}</ul></div></details>
+      <div class="row"><button type="button" class="hdel" data-hdel="${h.id}">Usuń z historii</button></div>
+    </div>`).join("");
+}
+$("#view-history").addEventListener("click", e => {
+  const b = e.target.closest("[data-hdel]"); if (!b) return;
+  const i = hist.findIndex(h => h.id === +b.dataset.hdel), removed = hist[i];
+  hist.splice(i, 1); save("pl-history", hist); renderHistory();
+  showToast("Usunięto z historii", () => { hist.splice(i, 0, removed); save("pl-history", hist); renderHistory(); });
 });
 
 // ---------- Widok
@@ -743,7 +907,7 @@ function ingList(r, portions) {
 
 function renderPlan(total, items) {
   let html = `<div class="card sum">${summaryHTML(total, items)}</div>
-    <button type="button" class="btn plain" id="reroll">Wylosuj inny plan</button>`;
+    <button type="button" class="btn plain" id="reroll"${planSaved ? " disabled" : ""}>Wylosuj inny plan</button>`;
   for (let d = 0; d < cfg.days; d++) {
     const cost = groups.filter(g => g.days.includes(d)).reduce((s, g) => s + portionCost(g.r) * cfg.persons, 0);
     html += `<div class="sec"><div class="dayhd"><b>Dzień ${d + 1}</b><span>${dayLabel(d)} · ${zl(cost)}</span></div><div class="card">`;
@@ -754,16 +918,21 @@ function renderPlan(total, items) {
       const portions = second ? cfg.persons : cfg.persons * g.days.length;
       const prefs = r.tags.filter(t => cfg.prefs.includes(t)).map(t => TAG_NAMES[t]).join(", ");
       const lock = second ? `<span class="lock" aria-hidden="true"></span>`
-        : `<button type="button" class="lock" data-lock="${gi}" aria-pressed="${!!g.locked}" aria-label="${g.locked ? "Odblokuj" : "Zablokuj"}: ${r.n}" title="${g.locked ? "Odblokuj" : "Zablokuj"}">
+        : `<button type="button" class="lock" data-lock="${gi}"${planSaved ? " disabled" : ""} aria-pressed="${!!g.locked}" aria-label="${g.locked ? "Odblokuj" : "Zablokuj"}: ${r.n}" title="${g.locked ? "Odblokuj" : "Zablokuj"}">
           <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="${g.locked ? "M8 11V7a4 4 0 0 1 8 0v4" : "M8 11V7a4 4 0 0 1 7.5-1.9"}"/></svg></button>`;
       const actions = second || g.locked ? "" : ` · <button type="button" data-swap="${gi}" aria-label="Zamień: ${r.n}">Zamień</button>`;
-      html += `<div class="row meal${g.locked ? " locked" : ""}"><div class="txt"><span class="kind">${MEAL_NAMES[m]}</span>
+      const fav = r.n in favs;
+      html += `<div class="row meal${g.locked ? " locked" : ""}"><button type="button" class="star${fav ? " on" : ""}" data-fav="${esc(r.n)}" aria-pressed="${fav}" aria-label="${fav ? "Usuń z ulubionych" : "Dodaj do ulubionych"}: ${esc(r.n)}">${STAR}</button><div class="txt"><span class="kind">${MEAL_NAMES[m]}</span>
         <details><summary>${r.n}</summary><ul class="ing">${second ? "<li>Odgrzewasz porcję z wczoraj.</li>" : ingList(g.r, portions)}</ul></details>
         <span class="meta">${second ? "z wczoraj" : r.min + " min"}${!second && g.days.length > 1 ? ` · gotujesz ${portions} porcji` : ""}${prefs ? ` · <span class="pref">${prefs}</span>` : ""}${actions}</span>
         </div><div class="side">${lock}<span class="tag"><b>${zl(portionCost(g.r)).replace(" zł", "")}</b><small>zł / porcja</small></span></div></div>`;
     });
     html += `</div></div>`;
   }
+  html += planSaved
+    ? `<div class="sec"><button type="button" class="btn yellow" id="newPlan">Nowy jadłospis</button>
+      <div class="ft">Ten jadłospis jest zapisany w historii, więc dania są zablokowane. „Nowy jadłospis” odblokuje dania i losowanie.</div></div>`
+    : `<button type="button" class="btn" id="savePlan">Zapisz jadłospis</button>`;
   $("#view-plan").innerHTML = html;
 }
 
@@ -818,15 +987,31 @@ function renderPrices() {
 }
 
 // ---------- Zakładki
-const TABS = {form: "Planuj", plan: "Jadłospis", list: "Lista zakupów", prices: "Ceny"};
+const TABS = {form: "Planuj", plan: "Jadłospis", list: "Lista zakupów", history: "Historia zakupów"};
+let curTab = "form";
 function showTab(t) {
+  curTab = t;
   Object.keys(TABS).forEach(x => { $("#tab-" + x).setAttribute("aria-selected", x === t); $("#view-" + x).hidden = x !== t; });
+  $("#view-prices").hidden = true; $("#back").hidden = true; document.body.classList.remove("full");
   toggleMenu(false);
   $("#title").textContent = TABS[t];
   hideToast();
   window.scrollTo(0, 0);
 }
 Object.keys(TABS).forEach(t => $("#tab-" + t).addEventListener("click", () => showTab(t)));
+
+// Ceny: pełny ekran otwierany z ustawień, „Wróć” wraca do ostatniej zakładki.
+function openPrices() {
+  toggleMenu(false); hideToast();
+  Object.keys(TABS).forEach(x => { $("#view-" + x).hidden = true; });
+  renderPrices();
+  $("#view-prices").hidden = false; $("#back").hidden = false; document.body.classList.add("full");
+  $("#title").textContent = "Ceny";
+  window.scrollTo(0, 0);
+}
+$("#openPrices").addEventListener("click", openPrices);
+$("#back").addEventListener("click", () => showTab(curTab));
+document.addEventListener("keydown", e => { if (e.key === "Escape" && document.body.classList.contains("full")) showTab(curTab); });
 
 // ---------- Rozwijane ustawienia pod zębatką
 function toggleMenu(open) {
@@ -863,9 +1048,13 @@ $("#view-form").addEventListener("submit", e => {
   showTab("plan");
 });
 $("#view-plan").addEventListener("click", e => {
-  if (e.target.id === "reroll") { reroll(); return; }
+  if (e.target.id === "reroll") { if (!planSaved) reroll(); return; }
+  if (e.target.id === "savePlan") { savePlan(); return; }
+  if (e.target.id === "newPlan") { unsave(); window.scrollTo(0, 0); return; }
+  const f = e.target.closest("[data-fav]");
+  if (f) { const n = f.dataset.fav, on = !(n in favs); toggleFav(n, on); showToast(on ? "Dodano do ulubionych" : "Usunięto z ulubionych"); return; }
   const l = e.target.closest("[data-lock]");
-  if (l) { const g = groups[+l.dataset.lock]; g.locked = !g.locked; render(); return; }
+  if (l) { if (planSaved) return; const g = groups[+l.dataset.lock]; g.locked = !g.locked; render(); return; }
   const b = e.target.closest("[data-swap]"); if (b) swapGroup(+b.dataset.swap);
 });
 $("#view-list").addEventListener("change", e => {
@@ -891,6 +1080,8 @@ $("#view-prices").addEventListener("click", e => {
 
 generate(false);
 renderExtra();
+renderFavs();
+renderHistory();
 </script>
 
 <style>body { padding-top: calc(8px + env(safe-area-inset-top, 0px)); }</style>
