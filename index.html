@@ -10,13 +10,12 @@
 <meta name="apple-mobile-web-app-title" content="Lodówka">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="theme-color" content="#f2f4f1" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#0b0f0c" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icons/icon-180.png">
 <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
 <style>
-html { background: #f2f4f1; }
-@media (prefers-color-scheme: dark) { html { background: #0b0f0c; } }
+html { background: var(--bg); }
 body { margin: 0; }
 img { max-width: 100%; }
 [hidden] { display: none !important; }
@@ -37,6 +36,8 @@ img { max-width: 100%; }
   --accent-soft: #dff0e5;
   --tag: #ffd60a;
   --tag-ink: #14261b;
+  --knob: #ffffff;
+  --vignette: none;
   --coral: #d9472b;
   --coral-soft: #ffe6e0;
   --bar: rgba(248, 250, 247, 0.88);
@@ -47,40 +48,43 @@ img { max-width: 100%; }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     color-scheme: dark;
-    --bg: #0b0f0c;
-    --card: #1a1f1b;
+    --bg: #000000;
+    --vignette: radial-gradient(130% 75% at 50% 0%, #102318 0%, #050a07 50%, #000000 100%);
+    --card: #141715;
     --ink: #eef3ef;
     --muted: #94a098;
     --sep: rgba(255, 255, 255, 0.1);
-    --fill: #2a302c;
+    --fill: #262a27;
     --sw-off: #39403b;
-    --accent: #3dbe74;
+    --accent: #2ee36e;
     --on-accent: #06210f;
-    --accent-soft: #173222;
+    --accent-soft: #0c3a1f;
     --coral: #ff7a5e;
     --coral-soft: #3a1e18;
-    --bar: rgba(22, 27, 23, 0.86);
+    --bar: rgba(10, 12, 11, 0.82);
   }
 }
 :root[data-theme="dark"] {
   color-scheme: dark;
-  --bg: #0b0f0c;
-  --card: #1a1f1b;
+  --bg: #000000;
+    --vignette: radial-gradient(130% 75% at 50% 0%, #102318 0%, #050a07 50%, #000000 100%);
+  --card: #141715;
   --ink: #eef3ef;
   --muted: #94a098;
   --sep: rgba(255, 255, 255, 0.1);
-  --fill: #2a302c;
+  --fill: #262a27;
   --sw-off: #39403b;
-  --accent: #3dbe74;
+  --accent: #2ee36e;
   --on-accent: #06210f;
-  --accent-soft: #173222;
+  --accent-soft: #0c3a1f;
   --coral: #ff7a5e;
   --coral-soft: #3a1e18;
-  --bar: rgba(22, 27, 23, 0.86);
+  --bar: rgba(10, 12, 11, 0.82);
 }
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 body {
   background: var(--bg);
+  isolation: isolate;
   color: var(--ink);
   font: 17px/1.35 var(--f-ui);
   -webkit-font-smoothing: antialiased;
@@ -88,12 +92,42 @@ body {
   padding-left: max(16px, env(safe-area-inset-left, 0px));
   padding-right: max(16px, env(safe-area-inset-right, 0px));
 }
-button, input { font: inherit; color: inherit; }
+body::before { content: ""; position: fixed; inset: 0; z-index: -1; background: var(--vignette); pointer-events: none; }
+button, input, textarea { font: inherit; color: inherit; }
+.add input { flex: 1; min-width: 0; border: 0; background: transparent; padding: 0; }
+.add input::placeholder { color: var(--muted); }
+.add input:focus { outline: none; }
+.addbtn { width: 32px; height: 32px; flex: none; display: grid; place-items: center; border: 0; border-radius: 50%; padding: 0; background: var(--accent); color: var(--on-accent); cursor: pointer; }
+.addbtn svg, .xchip svg { fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; }
+.addbtn svg { width: 18px; height: 18px; }
+.xchips { border-top: 0.5px solid var(--sep); }
+.xchip { display: inline-flex; align-items: center; gap: 2px; max-width: 100%; padding: 5px 5px 5px 13px; border-radius: 999px; background: var(--accent); color: var(--on-accent); font-size: 15px; font-weight: 600; }
+.xchip span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.xchip button { width: 24px; height: 24px; flex: none; display: grid; place-items: center; border: 0; border-radius: 50%; padding: 0; background: none; color: inherit; cursor: pointer; }
+.xchip svg { width: 14px; height: 14px; }
+.xchip.new { animation: pop .25s ease-out; }
+@keyframes pop { from { transform: scale(.6); opacity: 0; } }
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .wrap { max-width: 600px; margin: 0 auto; }
 
-.top { padding: 8px 4px 14px; }
-.top small { display: block; font-size: 13px; font-weight: 600; color: var(--accent); letter-spacing: 0.02em; }
+.top { padding: 8px 4px 14px; display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; position: relative; z-index: 25; }
+.menu {
+  position: absolute; top: 46px; right: -4px; width: min(280px, calc(100vw - 32px));
+  background: var(--card); border: 0.5px solid var(--sep); border-radius: 14px; box-shadow: 0 10px 30px rgba(0,0,0,.18);
+  transform-origin: top right; transform: scale(.92); opacity: 0; visibility: hidden;
+  transition: transform .18s ease, opacity .18s ease, visibility 0s .18s;
+}
+.menu.open { transform: none; opacity: 1; visibility: visible; transition: transform .18s ease, opacity .18s ease; }
+.menu .hd { font-size: 13px; text-transform: uppercase; letter-spacing: 0.03em; color: var(--muted); padding: 12px 16px 0; }
+.gear { width: 40px; height: 40px; margin: -2px -6px 0 0; display: grid; place-items: center; border: 0; border-radius: 50%; background: none; padding: 0; color: var(--accent); cursor: pointer; flex: none; }
+.gear svg { width: 26px; height: 26px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.gear[aria-expanded="true"] { background: var(--fill); }
+.theme { position: relative; width: 72px; height: 34px; flex: none; border: 0; border-radius: 999px; background: var(--fill); padding: 0 8px; display: flex; align-items: center; justify-content: space-between; color: var(--muted); cursor: pointer; }
+.theme i { position: absolute; top: 3px; left: 3px; width: 28px; height: 28px; border-radius: 50%; background: var(--knob); box-shadow: 0 2px 6px rgba(0,0,0,.18), 0 0 1px rgba(0,0,0,.2); transition: transform .2s; }
+.theme svg { position: relative; width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.theme[aria-checked="false"] .sun, .theme[aria-checked="true"] .moon { color: var(--accent); }
+.theme[aria-checked="true"] i { transform: translateX(38px); }
+.top > div > small { display: block; font-size: 13px; font-weight: 600; color: var(--muted); letter-spacing: 0.02em; }
 .top h1 { margin: 2px 0 0; font-size: 34px; font-weight: 700; letter-spacing: -0.025em; line-height: 1.1; }
 
 .view { display: grid; gap: 22px; }
@@ -107,9 +141,9 @@ button, input { font: inherit; color: inherit; }
 .row .v { color: var(--muted); }
 
 .amount { display: flex; align-items: baseline; gap: 4px; }
-.amount input { width: 90px; text-align: right; border: 0; background: transparent; font: 600 22px var(--f-num); color: var(--accent); font-variant-numeric: tabular-nums; padding: 0; }
+.amount input { width: 90px; text-align: right; border: 0; background: transparent; font: 600 22px var(--f-num); color: var(--ink); font-variant-numeric: tabular-nums; padding: 0; }
 .amount input:focus { outline: none; }
-.amount span { color: var(--accent); font-weight: 600; }
+.amount span { color: var(--muted); font-weight: 600; }
 input[type="range"] { width: 100%; accent-color: var(--accent); margin: 0; }
 
 .stepper { display: flex; align-items: center; background: var(--fill); border-radius: 9px; }
@@ -119,7 +153,7 @@ input[type="range"] { width: 100%; accent-color: var(--accent); margin: 0; }
 .stepper input::-webkit-inner-spin-button, .stepper input::-webkit-outer-spin-button { -webkit-appearance: none; }
 
 .sw { -webkit-appearance: none; appearance: none; width: 51px; height: 31px; border-radius: 999px; background: var(--sw-off); position: relative; cursor: pointer; flex: none; margin: 0; transition: background .2s; }
-.sw::before { content: ""; position: absolute; top: 2px; left: 2px; width: 27px; height: 27px; border-radius: 50%; background: #fff; box-shadow: 0 2px 6px rgba(0,0,0,.18), 0 0 1px rgba(0,0,0,.2); transition: transform .2s; }
+.sw::before { content: ""; position: absolute; top: 2px; left: 2px; width: 27px; height: 27px; border-radius: 50%; background: var(--knob); box-shadow: 0 2px 6px rgba(0,0,0,.18), 0 0 1px rgba(0,0,0,.2); transition: transform .2s; }
 .sw:checked { background: var(--accent); }
 .sw:checked::before { transform: translateX(20px); }
 .row label { flex: 1; cursor: pointer; }
@@ -149,14 +183,14 @@ input[type="range"] { width: 100%; accent-color: var(--accent); margin: 0; }
 .sum .big b { font: 700 38px/1 var(--f-num); letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
 .sum .big span { color: var(--muted); font-size: 15px; }
 .meter { height: 8px; border-radius: 999px; background: var(--fill); overflow: hidden; }
-.meter i { display: block; height: 100%; background: var(--accent); border-radius: 999px; transition: width .4s ease; }
+.meter i { display: block; height: 100%; background: var(--muted); border-radius: 999px; transition: width .4s ease; }
 .meter.over i { background: var(--coral); }
 .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
 .stats div { display: grid; }
 .stats b { font: 600 17px var(--f-num); font-variant-numeric: tabular-nums; }
 .stats small { font-size: 12px; color: var(--muted); }
 .note { padding: 10px 12px; border-radius: 10px; font-size: 14px; }
-.note.ok { background: var(--accent-soft); color: var(--accent); }
+.note.ok { background: var(--fill); color: var(--ink); }
 .note.bad { background: var(--coral-soft); color: var(--coral); }
 
 .tag { display: inline-grid; justify-items: end; background: var(--tag); color: var(--tag-ink); border-radius: 5px; padding: 3px 7px 2px; line-height: 1.05; flex: none; }
@@ -168,7 +202,7 @@ input[type="range"] { width: 100%; accent-color: var(--accent); margin: 0; }
 .dayhd span { font-size: 14px; color: var(--muted); font-variant-numeric: tabular-nums; }
 .meal { align-items: flex-start; padding-block: 11px; }
 .meal .txt { flex: 1; min-width: 0; display: grid; gap: 2px; }
-.meal .kind { font-size: 12px; font-weight: 600; color: var(--accent); text-transform: uppercase; letter-spacing: 0.04em; }
+.meal .kind { font-size: 12px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; }
 .meal summary { cursor: pointer; font-weight: 600; list-style: none; }
 .meal summary::-webkit-details-marker { display: none; }
 .meal .meta { font-size: 13px; color: var(--muted); }
@@ -180,7 +214,7 @@ input[type="range"] { width: 100%; accent-color: var(--accent); margin: 0; }
 .lock svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
 .meal.locked .lock { color: var(--accent); }
 .ing { margin: 6px 0 2px; padding-left: 18px; font-size: 14px; color: var(--muted); }
-.pref { color: var(--accent); }
+.pref { color: var(--ink); }
 
 .check { -webkit-appearance: none; appearance: none; width: 24px; height: 24px; border-radius: 50%; border: 1.5px solid var(--muted); flex: none; margin: 0; cursor: pointer; position: relative; }
 .check:checked { background: var(--accent); border-color: var(--accent); }
@@ -204,7 +238,7 @@ input[type="range"] { width: 100%; accent-color: var(--accent); margin: 0; }
   padding: 6px max(16px, env(safe-area-inset-right, 0px)) calc(6px + env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px));
 }
 .tabbar div { display: flex; width: 100%; max-width: 600px; justify-content: space-around; }
-.tabbar button { border: 0; background: none; display: grid; justify-items: center; gap: 2px; padding: 4px 8px; font-size: 10.5px; font-weight: 500; color: #8e8e93; cursor: pointer; min-width: 64px; }
+.tabbar button { border: 0; background: none; display: grid; justify-items: center; gap: 2px; padding: 4px 8px; font-size: 10.5px; font-weight: 500; color: var(--muted); cursor: pointer; min-width: 64px; }
 .tabbar svg { width: 26px; height: 26px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 .tabbar button[aria-selected="true"] { color: var(--accent); }
 .toast {
@@ -219,11 +253,21 @@ input[type="range"] { width: 100%; accent-color: var(--accent); margin: 0; }
 .toast button { border: 0; border-radius: 9px; padding: 7px 14px; background: var(--accent); color: var(--on-accent); font-weight: 600; cursor: pointer; flex: none; }
 .toast button[hidden] { display: none; }
 .foot { font-size: 13px; color: var(--muted); padding: 0 16px; margin: 0; }
-@media (prefers-reduced-motion: reduce) { .meter i, .sw, .sw::before, .toast, .toast.show { transition: none; } }
+@media (prefers-reduced-motion: reduce) { .meter i, .sw, .sw::before, .toast, .toast.show, .theme i, .menu, .menu.open { transition: none; } .xchip.new { animation: none; } }
 </style>
 
 <div class="wrap">
-  <header class="top"><small>Pełna Lodówka</small><h1 id="title">Planuj</h1></header>
+  <header class="top"><div><small>Pełna Lodówka</small><h1 id="title">Planuj</h1></div>
+    <button type="button" class="gear" id="gear" aria-label="Ustawienia" aria-expanded="false" aria-controls="menu"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button>
+    <div class="menu" id="menu" role="dialog" aria-label="Ustawienia">
+      <div class="hd">Ustawienia</div>
+      <div class="row"><label for="themeBtn">Motyw<small id="themeNote"></small></label>
+        <button type="button" class="theme" id="themeBtn" role="switch" aria-checked="false"><i></i>
+          <svg class="sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+          <svg class="moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20.5 14.5A8.5 8.5 0 1 1 9.5 3.5a7 7 0 0 0 11 11z"/></svg>
+        </button></div>
+    </div>
+  </header>
 
   <form class="view" id="view-form" autocomplete="off">
     <div class="sec">
@@ -281,12 +325,21 @@ input[type="range"] { width: 100%; accent-color: var(--accent); margin: 0; }
     </div>
 
     <button class="btn" type="submit">Ułóż plan i listę zakupów</button>
+
+    <div class="sec">
+      <div class="hd">Dodatkowe zakupy</div>
+      <div class="card">
+        <div class="row add"><input id="extraIn" type="text" placeholder="Np. woda" enterkeyhint="done" autocapitalize="sentences" autocomplete="off" aria-label="Dodaj pozycję do listy zakupów">
+          <button type="button" class="addbtn" id="extraAdd" aria-label="Dodaj"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button></div>
+        <div class="chips xchips" id="extraChips" hidden></div>
+      </div>
+      <div class="ft">Wpisz i naciśnij Enter. Pozycje od razu trafiają na koniec listy zakupów, bez ceny.</div>
+    </div>
   </form>
 
   <section class="view" id="view-plan" hidden></section>
   <section class="view" id="view-list" hidden></section>
-  <section class="view" id="view-prices" hidden></section>
-</div>
+  <section class="view" id="view-prices" hidden></section></div>
 
 <div class="toast" id="toast" role="status" aria-live="polite"><span id="toastMsg"></span><button type="button" id="undo">Cofnij</button></div>
 
@@ -441,11 +494,15 @@ function save(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch 
 let priceOverrides = load("pl-prices", {});
 let checked = load("pl-checked", {});
 let missing = load("pl-missing", {});
+let extra = load("pl-extra", []);
+if (typeof extra === "string") extra = [...new Set(extra.split("\n").map(s => s.trim()).filter(Boolean))];
 
 const $ = s => document.querySelector(s);
 const zl = v => v.toLocaleString("pl-PL", {minimumFractionDigits: 2, maximumFractionDigits: 2}) + " zł";
 const num = (v, dec = 1) => v.toLocaleString("pl-PL", {maximumFractionDigits: dec});
 const price = id => (id in priceOverrides) ? priceOverrides[id] : P[id].price;
+const esc = s => s.replace(/[&<>"]/g, c => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;"}[c]));
+const extraItems = () => extra;
 function amount(v, unit) {
   if (unit === "g" && v >= 1000) return num(v / 1000, 2) + " kg";
   if (unit === "ml" && v >= 1000) return num(v / 1000, 2) + " l";
@@ -462,6 +519,27 @@ $("#pantry").addEventListener("change", e => {
   const id = e.target.dataset.have; if (!id) return;
   if (e.target.checked) delete missing[id]; else missing[id] = true;
   save("pl-missing", missing);
+});
+// Dodatkowe zakupy: wpis + Enter dodaje plakietkę, X ją usuwa.
+function renderExtra(added) {
+  $("#extraChips").hidden = !extra.length;
+  $("#extraChips").innerHTML = extra.map(n => `<span class="xchip${n === added ? " new" : ""}"><span>${esc(n)}</span><button type="button" data-del="${esc(n)}" aria-label="Usuń: ${esc(n)}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button></span>`).join("");
+  save("pl-extra", extra);
+  if (cfg) { const b = basket(groups); renderList(b.items, b.total); }
+}
+function addExtra() {
+  const n = $("#extraIn").value.trim().replace(/\s+/g, " ");
+  $("#extraIn").value = "";
+  if (!n) return;
+  if (extra.some(x => x.toLowerCase() === n.toLowerCase())) return renderExtra();
+  extra.push(n); renderExtra(n);
+}
+$("#extraIn").addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); addExtra(); } });
+$("#extraAdd").addEventListener("click", () => { addExtra(); $("#extraIn").focus(); });
+$("#extraChips").addEventListener("click", e => {
+  const b = e.target.closest("[data-del]"); if (!b) return;
+  extra = extra.filter(x => x !== b.dataset.del); delete checked["x:" + b.dataset.del]; save("pl-checked", checked);
+  renderExtra();
 });
 $("#budget").addEventListener("input", e => { $("#budgetRange").value = e.target.value; });
 $("#budgetRange").addEventListener("input", e => { $("#budget").value = e.target.value; });
@@ -704,6 +782,16 @@ function renderList(items, total) {
     });
     html += `</div></div>`;
   });
+  const extras = extraItems();
+  if (extras.length) {
+    html += `<div class="sec"><div class="hd">Dodatkowe</div><div class="card">`;
+    extras.forEach((n, i) => {
+      const key = "x:" + n, on = !!checked[key];
+      html += `<div class="row item${on ? " done" : ""}"><input class="check" type="checkbox" id="chk-x${i}" data-chk="${esc(key)}"${on ? " checked" : ""}>
+        <label for="chk-x${i}"><span>${esc(n)}</span><small>dopisane przez Ciebie</small></label></div>`;
+    });
+    html += `</div></div>`;
+  }
   const inCart = items.filter(it => checked[it.p.id]).reduce((s, it) => s + it.cost, 0);
   html += `<div class="sec"><div class="card">
     <div class="row total"><span>Razem</span><b>${zl(total)}</b></div>
@@ -733,11 +821,39 @@ function renderPrices() {
 const TABS = {form: "Planuj", plan: "Jadłospis", list: "Lista zakupów", prices: "Ceny"};
 function showTab(t) {
   Object.keys(TABS).forEach(x => { $("#tab-" + x).setAttribute("aria-selected", x === t); $("#view-" + x).hidden = x !== t; });
+  toggleMenu(false);
   $("#title").textContent = TABS[t];
   hideToast();
   window.scrollTo(0, 0);
 }
 Object.keys(TABS).forEach(t => $("#tab-" + t).addEventListener("click", () => showTab(t)));
+
+// ---------- Rozwijane ustawienia pod zębatką
+function toggleMenu(open) {
+  $("#menu").classList.toggle("open", open);
+  $("#gear").setAttribute("aria-expanded", open);
+}
+$("#gear").addEventListener("click", () => toggleMenu(!$("#menu").classList.contains("open")));
+document.addEventListener("click", e => { if (!e.target.closest("#menu, #gear")) toggleMenu(false); });
+document.addEventListener("keydown", e => { if (e.key === "Escape" && $("#menu").classList.contains("open")) { toggleMenu(false); $("#gear").focus(); } });
+
+// ---------- Motyw: wybór użytkownika albo ustawienia systemu
+const sysDark = window.matchMedia ? matchMedia("(prefers-color-scheme: dark)") : null;
+function applyTheme() {
+  const t = load("pl-theme", null), dark = t ? t === "dark" : !!(sysDark && sysDark.matches);
+  if (t) document.documentElement.dataset.theme = t; else delete document.documentElement.dataset.theme;
+  $("#themeBtn").setAttribute("aria-checked", dark);
+  $("#themeBtn").setAttribute("aria-label", dark ? "Motyw ciemny, przełącz na jasny" : "Motyw jasny, przełącz na ciemny");
+  $("#themeNote").textContent = (dark ? "Ciemny" : "Jasny") + (t ? "" : ", jak w telefonie");
+  const bg = getComputedStyle(document.documentElement).getPropertyValue("--bg").trim();
+  document.querySelectorAll('meta[name="theme-color"]').forEach(m => { if (t) m.content = bg; });
+}
+$("#themeBtn").addEventListener("click", () => {
+  save("pl-theme", $("#themeBtn").getAttribute("aria-checked") === "true" ? "light" : "dark");
+  applyTheme();
+});
+if (sysDark && sysDark.addEventListener) sysDark.addEventListener("change", applyTheme);
+applyTheme();
 
 // ---------- Zdarzenia
 $("#view-form").addEventListener("submit", e => {
@@ -774,6 +890,7 @@ $("#view-prices").addEventListener("click", e => {
 });
 
 generate(false);
+renderExtra();
 </script>
 
 <style>body { padding-top: calc(8px + env(safe-area-inset-top, 0px)); }</style>
